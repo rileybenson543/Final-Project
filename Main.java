@@ -15,7 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 
 
-public class EncryptionExample extends Application implements EventHandler<ActionEvent> {
+public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Stage stage;
   private Scene scene;
