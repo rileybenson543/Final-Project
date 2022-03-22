@@ -28,7 +28,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnSend = new Button("Send");
   private Button btnGenerate = new Button("Generate Key");
 
-  private TextArea tArea = new TextArea();
+  private static TextArea tArea = new TextArea();
 
   private TextField tField = new TextField();
 
@@ -41,6 +41,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private byte[] initVectorBytes;
   private IvParameterSpec initVector;
   private SecretKeySpec secretKey;
+
+  KeyData keyData;
 
    
   public static void main(String[] args) {
@@ -79,7 +81,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     switch(btn.getText()) {
         case "Recieve Connections":
-          new ServerHandler().start();
+          new ServerHandler(keyData).start();
           break;
         case "Connect":
           connect();
@@ -113,12 +115,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       ex.printStackTrace();
     }
   }
-  public void readKey() {
+  private void readKey() {
     try {
       ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File("key.obj")));
-      KeyData data = (KeyData)ois.readObject();
-      secretKey = data.getKey();
-      initVectorBytes = data.getInitVector();
+      keyData = (KeyData)ois.readObject();
+      secretKey = keyData.getKey();
+      initVectorBytes = keyData.getInitVector();
       initVector = new IvParameterSpec(initVectorBytes);
 
       if (initVector!=null && secretKey!=null) {
@@ -136,7 +138,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
 
   }
-  public void generateKey() {
+  private void generateKey() {
 
     secretKey = Encrypt.generateKey();
     initVectorBytes = Encrypt.getInitVector();
@@ -155,64 +157,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       ex.printStackTrace();
     }
   }
-  class ServerHandler extends Thread {
-
-    ServerSocket ss;
-    public void run() {
-      try {
-        ss = new ServerSocket(12345);
-        while(true) {
-            System.out.println("waiting for connection");
-            Socket s = ss.accept();
-            System.out.println("Accepted connection from "+s.getInetAddress().getHostName());
-            new SocketHandler(s).start();
-        }
-      }
-      catch (Exception ex) {
-        System.out.println("Socket Closed");
-      }
-    }
-    public void shutdown() {
-      try {
-        ss.close();
-        
-        System.out.println("shutdown");
-      }
-      catch (Exception ex) {
-        ex.printStackTrace();
-      }
-    }
-  }
-  class SocketHandler extends Thread {
-
-    Socket s;
-      ObjectInputStream ois;
-      ObjectOutputStream oos;
-      
-    public SocketHandler(Socket _s) {
-        s = _s;
-        try {
-          oos = new ObjectOutputStream(s.getOutputStream());
-          ois = new ObjectInputStream(s.getInputStream());
-        }
-        catch (Exception ex) {
-          ex.printStackTrace();
-        }
-    }
-    public void run() {
-
-      System.out.println("Connect");
-      try {
-        while(true) {
-          String dataIn = ois.readObject().toString();
-          tArea.appendText(dataIn+"\n");
-          tArea.appendText(Encrypt.decrypt_with_key(dataIn, secretKey, initVector)+"\n");
-
-        }
-      }
-      catch (Exception ex) {
-        ex.printStackTrace();
-      }
-    }
-  }   
+  public static void writeText(String s) {
+    tArea.appendText(s+"\n");
+  }  
 }	
