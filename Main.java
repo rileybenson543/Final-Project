@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 
 import java.net.*;
+import java.util.ArrayList;
 import java.io.*;
 
 import javax.crypto.spec.IvParameterSpec;
@@ -23,7 +24,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private VBox root = new VBox(8);
 
 
-  private Button btnReceive = new Button("Recieve Connections");
+  private Button btnReceive = new Button("Receive Connections");
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
   private Button btnGenerate = new Button("Generate Key");
@@ -44,6 +45,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   KeyData keyData;
 
+  ServerHandler serverHandler;
+
+  
    
   public static void main(String[] args) {
     launch(args);
@@ -80,8 +84,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     
 
     switch(btn.getText()) {
-        case "Recieve Connections":
-          new ServerHandler(keyData).start();
+        case "Receive Connections":
+          serverHandler = new ServerHandler(keyData);
+          serverHandler.start();
+          btnReceive.setText("Disconnect");
           break;
         case "Connect":
           connect();
@@ -91,6 +97,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
         case "Generate Key":
           generateKey();
+          break;
+        case "Disconnect":
+          serverHandler.shutdown();
+          btnReceive.setText("Receive Connections");
           break;
       }
    }
