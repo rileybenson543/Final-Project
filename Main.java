@@ -106,7 +106,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
-      oos.writeObject(Encryption.encrypt(dataToSend,secretKey,initVector));
+      oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
       oos.flush();
     }
     catch (Exception ex) {
@@ -202,28 +202,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     public void run() {
 
       System.out.println("Connect");
-      // Encryption.setup();
       try {
         while(true) {
           String dataIn = ois.readObject().toString();
           tArea.appendText(dataIn+"\n");
-          // String key = sc.next();
-          // tArea.appendText(Decryption.decrypt_with_key(dataIn,Encryption.getKey(),Encryption.getIV())+"\n");
-
-              // String testString = "test data string";
-
-              // Encryption.setup();
-
-              // String encryptedString = Encryption.encrypt(testString);
-              // //String decryptedString = Encryption.decrypt(encryptedString);
-
-              // // tArea.appendText(testString+"\n");
-              // // tArea.appendText(encryptedString+"\n");
-              // // tArea.appendText(decryptedString+"\n");
-
-              // String key = sc.next();
-              // System.out.println(Encryption.decrypt_with_key(encryptedString, key));
-          tArea.appendText(Encryption.decrypt_with_key(dataIn, secretKey, initVector)+"\n");
+          tArea.appendText(Encrypt.decrypt_with_key(dataIn, secretKey, initVector)+"\n");
 
         }
       }
