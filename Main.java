@@ -57,12 +57,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     root.getChildren().addAll(btnReceive,btnConnect,btnGenerate,tField,btnSend,tArea);
 
+    stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+        public void handle(WindowEvent evt) {      
+          System.exit(0);
+        }
+    });
+
     scene = new Scene(root, 300, 300); 
                                         
     stage.setScene(scene);              
     stage.show();
     
-
     readKey();
 
   }
@@ -92,8 +97,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       socket = new Socket("localhost",12345);
       oos = new ObjectOutputStream(socket.getOutputStream());
       ois = new ObjectInputStream(socket.getInputStream());
-      tArea.appendText("connected");
-      // Encryption.setup();
+      tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
     }
     catch (Exception ex) {
         ex.printStackTrace();
@@ -117,14 +121,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       initVectorBytes = data.getInitVector();
       initVector = new IvParameterSpec(initVectorBytes);
 
-      System.out.println(secretKey);
-      System.out.println(initVector);
-      
-
-
+      if (initVector!=null && secretKey!=null) {
+        tArea.appendText("Successfully read key file\n");
+      }
+      else {
+        throw new Exception("File Read Error");
+      }      
     }
     catch (FileNotFoundException ex) {
-      System.out.println("file was not found. Continuing...");
+      tArea.appendText("Key file was not found. One will need to be generated\n");
     }
     catch (Exception ex) {
       ex.printStackTrace();
