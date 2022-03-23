@@ -32,6 +32,7 @@ class ServerHandler extends Thread {
         System.out.println("Socket Closed");
       }
     }
+    
     public void shutdown() {
       try {
         active = false;

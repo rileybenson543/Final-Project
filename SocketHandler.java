@@ -36,8 +36,8 @@ public class SocketHandler extends Thread {
     while(active) {
       try {
           String dataIn = ois.readObject().toString();
-          Server.writeText(dataIn);
-          Server.writeText(Encrypt.decrypt_with_key(dataIn, secretKey, initVector));
+          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + dataIn);
+          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + Encrypt.decrypt_with_key(dataIn, secretKey, initVector));
       }
       catch (Exception ex) {
         ex.printStackTrace();

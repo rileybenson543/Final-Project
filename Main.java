@@ -65,7 +65,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
     });
 
-    scene = new Scene(root, 300, 300); 
+    scene = new Scene(root, 600, 600); 
                                         
     stage.setScene(scene);              
     stage.show();
