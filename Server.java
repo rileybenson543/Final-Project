@@ -15,13 +15,15 @@ import javax.crypto.spec.SecretKeySpec;
 
 
 
-public class Main extends Application implements EventHandler<ActionEvent> {
+public class Server extends Application implements EventHandler<ActionEvent> {
 
   private Stage stage;
   private Scene scene;
 
   private VBox root = new VBox(8);
 
+
+  private Button btnReceive = new Button("Receive Connections");
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
   private Button btnGenerate = new Button("Generate Key");
@@ -51,13 +53,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }
   public void start(Stage _stage) throws Exception {
     stage = _stage;
-    stage.setTitle("Client");
+    stage.setTitle("Server");
     
+    btnReceive.setOnAction(this);
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
 
-    root.getChildren().addAll(btnConnect,btnGenerate,tField,btnSend,tArea);
+    root.getChildren().addAll(btnReceive,btnConnect,btnGenerate,tField,btnSend,tArea);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {      
@@ -80,6 +83,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     
 
     switch(btn.getText()) {
+        case "Receive Connections":
+          serverHandler = new ServerHandler(keyData);
+          serverHandler.start();
+          btnReceive.setText("Disconnect");
+          break;
         case "Connect":
           connect();
           break;
@@ -88,6 +96,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
         case "Generate Key":
           generateKey();
+          break;
+        case "Disconnect":
+          serverHandler.shutdown();
+          btnReceive.setText("Receive Connections");
           break;
       }
    }

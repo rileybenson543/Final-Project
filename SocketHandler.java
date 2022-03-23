@@ -32,12 +32,12 @@ public class SocketHandler extends Thread {
   }
   public void run() {
 
-    Main.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
+    Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
     while(active) {
       try {
           String dataIn = ois.readObject().toString();
-          Main.writeText(dataIn);
-          Main.writeText(Encrypt.decrypt_with_key(dataIn, secretKey, initVector));
+          Server.writeText(dataIn);
+          Server.writeText(Encrypt.decrypt_with_key(dataIn, secretKey, initVector));
       }
       catch (Exception ex) {
         ex.printStackTrace();
