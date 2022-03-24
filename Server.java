@@ -168,5 +168,5 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   }
   public static void writeText(String s) {
     tArea.appendText(s+"\n");
-  }  
+  }
 }	

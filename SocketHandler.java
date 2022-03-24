@@ -7,15 +7,16 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class SocketHandler extends Thread {
 
-  Socket s;
+  private Socket s;
 
-  SecretKeySpec secretKey;
-  IvParameterSpec initVector;
+  private SecretKeySpec secretKey;
+  private IvParameterSpec initVector;
 
-  ObjectInputStream ois;
-  ObjectOutputStream oos;
+  private ObjectInputStream ois;
+  private ObjectOutputStream oos;
 
-  Boolean active = true;
+
+  private Boolean active = true;
     
   public SocketHandler(Socket _s, KeyData _keyData) {
     s = _s;
@@ -23,8 +24,8 @@ public class SocketHandler extends Thread {
     initVector = new IvParameterSpec(keyData.getInitVector());
     secretKey = keyData.getKey();
     try {
-      oos = new ObjectOutputStream(s.getOutputStream());
       ois = new ObjectInputStream(s.getInputStream());
+      oos = new ObjectOutputStream(s.getOutputStream());
     }
     catch (Exception ex) {
       ex.printStackTrace();
@@ -36,16 +37,29 @@ public class SocketHandler extends Thread {
     while(active) {
       try {
           String dataIn = ois.readObject().toString();
+
+          String decrypted = Encrypt.decrypt_with_key(dataIn, secretKey, initVector);
+
+          ServerHandler.broadcast(decrypted,this);
+
           Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + dataIn);
-          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + Encrypt.decrypt_with_key(dataIn, secretKey, initVector));
+          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + decrypted);
       }
       catch (Exception ex) {
         ex.printStackTrace();
       }
     }
-      if (!active) {System.out.println("inactive");}
-    }
-  public void setInactive() {
-    active = false;
+      // if (!active) {System.out.println("inactive");}
   }
+  // public void setInactive() {      // Part of a current bug
+  //   active = false;                // involving disconnecting clients
+  // }
+
+  public ObjectOutputStream getOutputStream() {
+    return oos;
+  }
+  public Socket getSocket() {
+    return s;
+  }
+
 } 

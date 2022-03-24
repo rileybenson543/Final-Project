@@ -97,6 +97,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       oos = new ObjectOutputStream(socket.getOutputStream());
       ois = new ObjectInputStream(socket.getInputStream());
       tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
+      new incomingMessageHandler().start();
     }
     catch (Exception ex) {
         ex.printStackTrace();
@@ -156,5 +157,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }
   public static void writeText(String s) {
     tArea.appendText(s+"\n");
-  }  
+  }
+  class incomingMessageHandler extends Thread {
+    public void run() {
+      while(true) {
+        try {
+            String message = (String)ois.readObject();
+            tArea.appendText(message+"\n");
+            tArea.appendText(Encrypt.decrypt_with_key(message,secretKey,initVector));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+      }
+    }
+
+  }    
 }	
