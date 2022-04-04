@@ -34,6 +34,7 @@ public class SocketHandler extends Thread {
   public void run() {
 
     Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
+    currentThread().setName("SocketHandler");
     while(active) {
       try {
           String dataIn = ois.readObject().toString();
@@ -62,9 +63,9 @@ public class SocketHandler extends Thread {
     }
       // if (!active) {System.out.println("inactive");}
   }
-  // public void setInactive() {      // Part of a current bug
-  //   active = false;                // involving disconnecting clients
-  // }
+  public void setInactive() {      // Part of a current bug
+    active = false;                // involving disconnecting clients
+  }
 
   public ObjectOutputStream getOutputStream() {
     return oos;

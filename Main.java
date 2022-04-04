@@ -176,7 +176,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tArea.appendText(s+"\n");
   }
   class IncomingMessageHandler extends Thread {
+    
     public void run() {
+      currentThread().setName("IncomingMessageHandler");
       while(true) {
         try {
             String message = (String)ois.readObject();

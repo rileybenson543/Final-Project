@@ -28,6 +28,7 @@ class ServerHandler extends Thread {
       initVector = new IvParameterSpec(keyData.getInitVector());
       try {
         ss = new ServerSocket(12345);
+        currentThread().setName("ServerHandler");
         while(active) {
             System.out.println("waiting for connection");
             Socket s = ss.accept();
@@ -47,8 +48,8 @@ class ServerHandler extends Thread {
         active = false;
         ss.close();
         for (SocketHandler s : activeClients) {
-            //s.setInactive();
-            s.stop(); //need to find a better way to do this
+            s.setInactive();
+            // s.stop(); //need to find a better way to do this
         }
         System.out.println("shutdown");
         Thread.currentThread().interrupt();
