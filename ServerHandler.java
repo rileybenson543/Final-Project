@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.ArrayList;
@@ -62,10 +63,26 @@ class ServerHandler extends Thread {
     public static void setInactiveSocketHandler(SocketHandler _s) {
       activeClients.remove(_s);
 
+      sendActiveClients();
+
       System.out.println(_s.getSocket().getPort()+" Disconnected");
 
     }
-
+    public static void sendActiveClients() {
+      ArrayList<String> activeClientsStrings = new ArrayList<String>();
+      for (SocketHandler s : activeClients) {
+        activeClientsStrings.add(s.getSocket().getPort()+"");
+      }
+      for (SocketHandler s : activeClients) {
+        ObjectOutputStream oos = s.getOutputStream();
+        try {
+          oos.writeObject(activeClientsStrings);
+        }
+        catch (IOException ex) {
+          ex.printStackTrace();
+        }
+      }
+    }
     public static void broadcast(String message,SocketHandler sender) {
         for (SocketHandler s : activeClients) {
             if(!s.equals(sender)) {

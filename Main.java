@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 
 import java.net.*;
+import java.util.ArrayList;
 import java.io.*;
 
 import javax.crypto.spec.IvParameterSpec;
@@ -27,6 +28,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnGenerate = new Button("Generate Key");
 
   private static TextArea tArea = new TextArea();
+  
+  private TextArea taClients = new TextArea();
 
   private TextField tField = new TextField();
 
@@ -44,7 +47,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   //ServerHandler serverHandler;
 
-  
+  private ArrayList<String> activeClients = new ArrayList<>();
    
   public static void main(String[] args) {
     launch(args);
@@ -57,7 +60,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
 
-    root.getChildren().addAll(btnConnect,btnGenerate,tField,btnSend,tArea);
+    root.getChildren().addAll(btnConnect,btnGenerate,tField,btnSend,tArea,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -172,18 +175,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       ex.printStackTrace();
     }
   }
+
   public static void writeText(String s) {
     tArea.appendText(s+"\n");
   }
+
+  private void processActiveClients() {
+    taClients.setText("");
+    for (String s : activeClients) {
+      taClients.appendText(s+"\n");
+    }
+  }
+
   class IncomingMessageHandler extends Thread {
     
     public void run() {
       currentThread().setName("IncomingMessageHandler");
       while(true) {
         try {
-            String message = (String)ois.readObject();
-            tArea.appendText(message+"\n");
-            tArea.appendText(Encrypt.decrypt_with_key(message,secretKey,initVector));
+            Object message = ois.readObject();
+            if (message instanceof String ) {
+              tArea.appendText(message+"\n");
+              tArea.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
+            }
+            else if (message instanceof ArrayList) {
+              activeClients = (ArrayList<String>)message;
+              processActiveClients();
+            }
         }
         catch (SocketException ex) {
           break;

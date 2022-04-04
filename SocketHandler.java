@@ -35,6 +35,7 @@ public class SocketHandler extends Thread {
 
     Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
     currentThread().setName("SocketHandler");
+    ServerHandler.sendActiveClients();
     while(active) {
       try {
           String dataIn = ois.readObject().toString();
