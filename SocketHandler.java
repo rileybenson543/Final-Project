@@ -15,6 +15,7 @@ public class SocketHandler extends Thread {
   private ObjectInputStream ois;
   private ObjectOutputStream oos;
 
+  private String clientName;
 
   private Boolean active = true;
     
@@ -34,10 +35,11 @@ public class SocketHandler extends Thread {
   public void run() {
 
     Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
-    currentThread().setName("SocketHandler");
-    ServerHandler.sendActiveClients();
-    while(active) {
-      try {
+    currentThread().setName("SocketHandler"); // mostly for debugging
+    try {
+      clientName = (String)ois.readObject();
+      ServerHandler.sendActiveClients();
+      while (active) {
           String dataIn = ois.readObject().toString();
 
           // reads init vector
@@ -48,19 +50,18 @@ public class SocketHandler extends Thread {
           Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + dataIn);
           Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + decrypted);
       }
-      catch (EOFException ex) {
-        try {
-          s.close();
-          ServerHandler.setInactiveSocketHandler(this);
-          break;
-        }
-        catch (IOException io) {
-          break;
-        }
+    }
+    catch (EOFException ex) {
+      try {
+        s.close();
+        ServerHandler.setInactiveSocketHandler(this);
       }
-      catch (Exception ex) {
-        ex.printStackTrace();
+      catch (IOException io) {
+        
       }
+    }
+    catch (Exception ex) {
+      ex.printStackTrace();
     }
       // if (!active) {System.out.println("inactive");}
   }
@@ -73,6 +74,9 @@ public class SocketHandler extends Thread {
   }
   public Socket getSocket() {
     return s;
+  }
+  public String getClientName() {
+    return clientName;
   }
 
 } 

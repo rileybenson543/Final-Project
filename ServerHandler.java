@@ -65,13 +65,13 @@ class ServerHandler extends Thread {
 
       sendActiveClients();
 
-      System.out.println(_s.getSocket().getPort()+" Disconnected");
+      System.out.println(_s.getClientName()+" Disconnected");
 
     }
     public static void sendActiveClients() {
       ArrayList<String> activeClientsStrings = new ArrayList<String>();
       for (SocketHandler s : activeClients) {
-        activeClientsStrings.add(s.getSocket().getPort()+"");
+        activeClientsStrings.add(s.getClientName());
       }
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();

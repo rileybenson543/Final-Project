@@ -32,6 +32,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private TextArea taClients = new TextArea();
 
   private TextField tField = new TextField();
+  private TextField nameInput = new TextField();
+
+  private Label nameLbl = new Label("Name");
+
+  private FlowPane fp1 = new FlowPane(8,8);
 
   Socket socket;
 
@@ -60,7 +65,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
 
-    root.getChildren().addAll(btnConnect,btnGenerate,tField,btnSend,tArea,taClients);
+    fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
+
+    root.getChildren().addAll(fp1,btnGenerate,tField,btnSend,tArea,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -99,17 +106,26 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
    }
   private void connect() {
-    try {
-      socket = new Socket("localhost",12345);
-      oos = new ObjectOutputStream(socket.getOutputStream());
-      ois = new ObjectInputStream(socket.getInputStream());
-      tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
-      messageHandler = new IncomingMessageHandler();
-      messageHandler.start();
-      btnConnect.setText("Disconnect");
+    String name = nameInput.getText();
+    if (!name.isEmpty()) {
+      try {
+        socket = new Socket("localhost",12345);
+        oos = new ObjectOutputStream(socket.getOutputStream());
+        ois = new ObjectInputStream(socket.getInputStream());
+        tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
+        messageHandler = new IncomingMessageHandler();
+        messageHandler.start();
+        btnConnect.setText("Disconnect");
+
+        oos.writeObject(nameInput.getText());
+
+      }
+      catch (Exception ex) {
+          ex.printStackTrace();
+      }
     }
-    catch (Exception ex) {
-        ex.printStackTrace();
+    else {
+      tArea.appendText("Please enter a name and try again\n");
     }
   }
   private void disconnect() {
@@ -190,7 +206,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   class IncomingMessageHandler extends Thread {
     
     public void run() {
-      currentThread().setName("IncomingMessageHandler");
+      currentThread().setName("IncomingMessageHandler"); // mostly for debugging
       while(true) {
         try {
             Object message = ois.readObject();
