@@ -57,11 +57,20 @@ class ServerHandler extends Thread {
         ex.printStackTrace();
       }
     }
+    
+    public static void setInactiveSocketHandler(SocketHandler _s) {
+      activeClients.remove(_s);
+
+      System.out.println(_s.getSocket().getPort()+" Disconnected");
+
+    }
 
     public static void broadcast(String message,SocketHandler sender) {
         for (SocketHandler s : activeClients) {
             if(!s.equals(sender)) {
                 ObjectOutputStream oos = s.getOutputStream();
+                //generate a new initvector
+                // and send it along as well
                 try {oos.writeObject(Encrypt.encrypt("<"+sender.getSocket().getInetAddress().getHostAddress()+":"+sender.getSocket().getPort()+"> - " + message + "\n",secretKey,initVector));}
                 catch (Exception ex) {ex.printStackTrace();} 
             }

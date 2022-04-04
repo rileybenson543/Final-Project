@@ -34,7 +34,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   ObjectInputStream ois;
   ObjectOutputStream oos;
-
+  IncomingMessageHandler messageHandler;
 
   private byte[] initVectorBytes;
   private IvParameterSpec initVector;
@@ -42,7 +42,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   KeyData keyData;
 
-  ServerHandler serverHandler;
+  //ServerHandler serverHandler;
 
   
    
@@ -60,7 +60,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     root.getChildren().addAll(btnConnect,btnGenerate,tField,btnSend,tArea);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-        public void handle(WindowEvent evt) {      
+        public void handle(WindowEvent evt) {   
+          disconnect();   
           System.exit(0);
         }
     });
@@ -83,6 +84,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         case "Connect":
           connect();
           break;
+        case "Disconnect":
+          disconnect();
+          break;
         case "Send":
           send(tField.getText());
           break;
@@ -97,16 +101,30 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       oos = new ObjectOutputStream(socket.getOutputStream());
       ois = new ObjectInputStream(socket.getInputStream());
       tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
-      new incomingMessageHandler().start();
+      messageHandler = new IncomingMessageHandler();
+      messageHandler.start();
+      btnConnect.setText("Disconnect");
     }
     catch (Exception ex) {
         ex.printStackTrace();
     }
   }
+  private void disconnect() {
+    try {
+      socket.close();
+      btnConnect.setText("Connect");
+    }
+    catch (IOException ex) {
+      ex.printStackTrace();
+    }
+  }
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
+      // generate new init vector
       oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+      // need to send init vector as well
+
       oos.flush();
     }
     catch (Exception ex) {
@@ -149,7 +167,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       oos.writeObject(data);
       oos.flush();
       oos.close();
-
     }
     catch (Exception ex) {
       ex.printStackTrace();
@@ -158,18 +175,21 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public static void writeText(String s) {
     tArea.appendText(s+"\n");
   }
-  class incomingMessageHandler extends Thread {
+  class IncomingMessageHandler extends Thread {
     public void run() {
       while(true) {
         try {
             String message = (String)ois.readObject();
             tArea.appendText(message+"\n");
             tArea.appendText(Encrypt.decrypt_with_key(message,secretKey,initVector));
-        } catch (Exception ex) {
+        }
+        catch (SocketException ex) {
+          break;
+        } 
+        catch (Exception ex) {
             ex.printStackTrace();
         }
       }
     }
-
   }    
 }	

@@ -38,12 +38,23 @@ public class SocketHandler extends Thread {
       try {
           String dataIn = ois.readObject().toString();
 
+          // reads init vector
           String decrypted = Encrypt.decrypt_with_key(dataIn, secretKey, initVector);
 
           ServerHandler.broadcast(decrypted,this);
 
           Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + dataIn);
           Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + decrypted);
+      }
+      catch (EOFException ex) {
+        try {
+          s.close();
+          ServerHandler.setInactiveSocketHandler(this);
+          break;
+        }
+        catch (IOException io) {
+          break;
+        }
       }
       catch (Exception ex) {
         ex.printStackTrace();
