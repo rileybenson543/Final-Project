@@ -55,7 +55,8 @@ class ServerHandler extends Thread {
             // s.stop(); //need to find a better way to do this
         }
         System.out.println("shutdown");
-        Thread.currentThread().interrupt();
+        activeClients.clear();
+        // Thread.currentThread().interrupt();
       }
       catch (Exception ex) {
         ex.printStackTrace();

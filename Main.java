@@ -72,7 +72,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
 
-    comboBox.setValue("Everyone"); // default value for combo box
+    // comboBox.setValue("Not Connected"); // default value for combo box
 
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
@@ -221,8 +221,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private void processActiveClients() {
     taClients.setText("");
+    taClients.appendText("Me\n");
     for (String s : activeClients) {
-      taClients.appendText(s+"\n");
+      if (!s.equals(nameInput.getText())) {
+        taClients.appendText(s+"\n");
+      }
     }
 
     activeClients.add("Everyone");
