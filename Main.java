@@ -1,6 +1,7 @@
 
 
 import javafx.application.Application;
+import javafx.collections.*;
 import javafx.event.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -37,6 +38,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Label nameLbl = new Label("Name");
 
   private FlowPane fp1 = new FlowPane(8,8);
+  
+  private ArrayList<String> activeClients = new ArrayList<>();
+  ObservableList<String> activeClientsComboList;
+  ComboBox comboBox = new ComboBox(activeClientsComboList);
+  
+
 
   Socket socket;
 
@@ -52,7 +59,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   //ServerHandler serverHandler;
 
-  private ArrayList<String> activeClients = new ArrayList<>();
+  
    
   public static void main(String[] args) {
     launch(args);
@@ -65,9 +72,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
 
+    comboBox.setValue("Everyone"); // default value for combo box
+
+
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
 
-    root.getChildren().addAll(fp1,btnGenerate,tField,btnSend,tArea,taClients);
+    root.getChildren().addAll(fp1,btnGenerate,comboBox,tField,btnSend,tArea,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -132,6 +142,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     try {
       socket.close();
       btnConnect.setText("Connect");
+      taClients.setText("Not Connected");
     }
     catch (IOException ex) {
       ex.printStackTrace();
@@ -141,7 +152,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     try {
       System.out.println("sending");
       // generate new init vector
-      oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+
+      String comboBoxSelection = comboBox.getValue().toString();
+
+      if (comboBoxSelection.equals("Everyone")) {
+        dataToSend = "BROADCAST~" + dataToSend;
+        oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+      }
+      else {
+        dataToSend = comboBox.getValue().toString() + "~" + dataToSend;
+        oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+      }
+
+      
       // need to send init vector as well
 
       oos.flush();
@@ -201,6 +224,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     for (String s : activeClients) {
       taClients.appendText(s+"\n");
     }
+
+    activeClients.add("Everyone");
+    activeClientsComboList = FXCollections.observableArrayList(activeClients);
+
+    comboBox.setItems(activeClientsComboList);
   }
 
   class IncomingMessageHandler extends Thread {

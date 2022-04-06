@@ -44,11 +44,16 @@ public class SocketHandler extends Thread {
 
           // reads init vector
           String decrypted = Encrypt.decrypt_with_key(dataIn, secretKey, initVector);
+          String[] parsed = decrypted.split("~");
+          if (parsed[0].equals("BROADCAST")) {
+            ServerHandler.broadcast(parsed[1],this);
+          }
+          else  {
+            ServerHandler.sendDirect(clientName,parsed[0],parsed[1]);
+          }
 
-          ServerHandler.broadcast(decrypted,this);
-
-          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + dataIn);
-          Server.writeText("<"+s.getInetAddress().getHostAddress()+":"+s.getPort()+"> " + decrypted);
+          Server.writeText("<"+ clientName +"> " + dataIn); // temperorary for debugging
+          Server.writeText("<"+ clientName +"> " + decrypted);
       }
     }
     catch (EOFException ex) {

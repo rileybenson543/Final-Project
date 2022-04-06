@@ -19,6 +19,8 @@ class ServerHandler extends Thread {
     
     private volatile Boolean active = true;
 
+    ObjectOutputStream oos;
+
     
     public ServerHandler(KeyData _keyData) {
         keyData = _keyData;
@@ -84,14 +86,33 @@ class ServerHandler extends Thread {
       }
     }
     public static void broadcast(String message,SocketHandler sender) {
-        for (SocketHandler s : activeClients) {
-            if(!s.equals(sender)) {
-                ObjectOutputStream oos = s.getOutputStream();
-                //generate a new initvector
-                // and send it along as well
-                try {oos.writeObject(Encrypt.encrypt("<"+sender.getSocket().getInetAddress().getHostAddress()+":"+sender.getSocket().getPort()+"> - " + message + "\n",secretKey,initVector));}
-                catch (Exception ex) {ex.printStackTrace();} 
-            }
+      for (SocketHandler s : activeClients) {
+          if(!s.equals(sender)) {
+              ObjectOutputStream oos = s.getOutputStream();
+              //generate a new initvector
+              // and send it along as well
+              try {oos.writeObject(Encrypt.encrypt("<"+sender.getClientName() + "> - " + message + "\n",secretKey,initVector));}
+              catch (Exception ex) {ex.printStackTrace();} 
+          }
         }
+    }
+    public static void sendDirect(String sender,String recipient,String message) {
+      boolean found = false;
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(recipient)) {
+          found = true;
+          ObjectOutputStream oos = s.getOutputStream();
+          try {
+            oos.writeObject(Encrypt.encrypt("<"+ sender + "> - " + message + "\n",secretKey,initVector));
+          }
+          catch (IOException ex) {
+            ex.printStackTrace();
+          }
+        }
+      }
+      if (!found) {
+        Server.writeText("Direct message request to unkown recipient: "+recipient);
+      }
+
     }
   }
