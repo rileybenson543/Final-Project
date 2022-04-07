@@ -10,6 +10,7 @@ import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.io.*;
 
 import javax.crypto.spec.IvParameterSpec;
@@ -27,29 +28,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
   private Button btnGenerate = new Button("Generate Key");
+  private Button btnUpload = new Button("Upload File");
 
-  private static TextArea tArea = new TextArea();
+  private static TextArea taChat = new TextArea();
   
   private TextArea taClients = new TextArea();
+  private TextArea taFileView = new TextArea("No File Available");
 
   private TextField tField = new TextField();
   private TextField nameInput = new TextField();
 
   private Label nameLbl = new Label("Name");
 
+  private FlowPane fpChat = new FlowPane(8,8);
+  private FlowPane fpMain = new FlowPane(8,8);
+  private FlowPane fpFileView = new FlowPane(8,8);
   private FlowPane fp1 = new FlowPane(8,8);
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
   
-
-
   Socket socket;
 
   ObjectInputStream ois;
   ObjectOutputStream oos;
   IncomingMessageHandler messageHandler;
+  FileEditHandler fileEditHandler;
 
   private byte[] initVectorBytes;
   private IvParameterSpec initVector;
@@ -59,8 +64,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   //ServerHandler serverHandler;
 
-  
-   
   public static void main(String[] args) {
     launch(args);
   }
@@ -71,13 +74,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
     btnGenerate.setOnAction(this);
+    btnUpload.setOnAction(this);
 
     // comboBox.setValue("Not Connected"); // default value for combo box
 
-
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-
-    root.getChildren().addAll(fp1,btnGenerate,comboBox,tField,btnSend,tArea,taClients);
+    fpChat.getChildren().addAll(comboBox,tField,btnSend,taChat);
+    fpFileView.getChildren().addAll(taFileView,btnUpload);
+    fpMain.getChildren().addAll(fpChat,fpFileView);
+    root.getChildren().addAll(fp1,btnGenerate,fpMain,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -92,6 +97,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     stage.show();
     
     readKey();
+    fileEditHandler =  new FileEditHandler();
+    fileEditHandler.start();
 
   }
   
@@ -113,6 +120,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         case "Generate Key":
           generateKey();
           break;
+        case "Upload File":
+          fileEditHandler.upload();
+          break;
       }
    }
   private void connect() {
@@ -122,7 +132,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         socket = new Socket("localhost",12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
-        tArea.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
+        taChat.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
         btnConnect.setText("Disconnect");
@@ -135,12 +145,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
     else {
-      tArea.appendText("Please enter a name and try again\n");
+      taChat.appendText("Please enter a name and try again\n");
     }
   }
   private void disconnect() {
     try {
-      socket.close();
+      if (socket != null) {socket.close();}
       btnConnect.setText("Connect");
       taClients.setText("Not Connected");
     }
@@ -182,14 +192,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       initVector = new IvParameterSpec(initVectorBytes);
 
       if (initVector!=null && secretKey!=null) {
-        tArea.appendText("Successfully read key file\n");
+        taChat.appendText("Successfully read key file\n");
       }
       else {
         throw new Exception("File Read Error");
       }      
     }
     catch (FileNotFoundException ex) {
-      tArea.appendText("Key file was not found. One will need to be generated\n");
+      taChat.appendText("Key file was not found. One will need to be generated\n");
     }
     catch (Exception ex) {
       ex.printStackTrace();
@@ -216,7 +226,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }
 
   public static void writeText(String s) {
-    tArea.appendText(s+"\n");
+    taChat.appendText(s+"\n");
   }
 
   private void processActiveClients() {
@@ -245,8 +255,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         try {
             Object message = ois.readObject();
             if (message instanceof String ) {
-              tArea.appendText(message+"\n");
-              tArea.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
+              taChat.appendText(message+"\n");
+              taChat.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
             }
             else if (message instanceof ArrayList) {
               activeClients = (ArrayList<String>)message;
@@ -259,6 +269,26 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         catch (Exception ex) {
             ex.printStackTrace();
         }
+      }
+    }
+  }
+  class FileEditHandler extends Thread {
+    public void run() {
+
+    }
+    public void upload() {
+      FileChooser chooser = new FileChooser();  // create file chooser object
+      chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Text Files","*.txt"));  //filters to just .txt
+      File fileToUpload = chooser.showOpenDialog(stage);
+      try {
+        taFileView.setText("");
+        Scanner sc = new Scanner(new FileInputStream(fileToUpload));
+        while (sc.hasNextLine()) {
+          taFileView.appendText(sc.nextLine()+"\n");
+        }
+      }
+      catch (FileNotFoundException ex) {
+        ex.printStackTrace();
       }
     }
   }    
