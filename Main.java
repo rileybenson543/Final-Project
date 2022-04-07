@@ -39,9 +39,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private FlowPane fp1 = new FlowPane(8,8);
   
-  private ArrayList<String> activeClients = new ArrayList<>();
+  private ArrayList<String> activeClients = new ArrayList<String>();
   ObservableList<String> activeClientsComboList;
-  ComboBox comboBox = new ComboBox(activeClientsComboList);
+  ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
   
 
 
@@ -226,6 +226,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       if (!s.equals(nameInput.getText())) {
         taClients.appendText(s+"\n");
       }
+      // else {
+      //   activeClients.remove(s);
+      // }
     }
 
     activeClients.add("Everyone");
