@@ -55,7 +55,7 @@ public class Encrypt {
     return null;
   }
 
-  public static String decrypt_with_key(String encrypted, SecretKeySpec secretKey, IvParameterSpec initVector) {
+  public static String decrypt_with_key(String encrypted, SecretKeySpec secretKey, IvParameterSpec initVector) { // unused will need to be removed
     try {
 
       Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -68,5 +68,32 @@ public class Encrypt {
       return null;
     }
   }
+  public static byte[] encryptToBytes(byte[] toEncrypt, SecretKeySpec secretKey, IvParameterSpec initVector) {
+    try {
 
+      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding"); // creates cipher object with specified algorithim
+      cipher.init(Cipher.ENCRYPT_MODE, secretKey, initVector); // initializes the cipher object
+      return cipher.doFinal(toEncrypt);
+                                    
+    } catch (Exception e) {
+      System.out.println("Error while encrypting: " + e.toString());
+    }
+    return null;
+  }
+
+  public static byte[] decryptToBytes(byte[] encrypted, SecretKeySpec secretKey, IvParameterSpec initVector) {
+    try {
+
+      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+      cipher.init(Cipher.DECRYPT_MODE, secretKey, initVector);
+
+      return cipher.doFinal(encrypted);
+
+    } 
+    catch (Exception ex) {
+
+      ex.printStackTrace();
+      return null;
+    }
+  }
 }

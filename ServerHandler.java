@@ -79,7 +79,7 @@ class ServerHandler extends Thread {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
         try {
-          oos.writeObject(activeClientsStrings);
+          oos.writeObject(Encrypt.encryptToBytes(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray(),secretKey,initVector));
         }
         catch (IOException ex) {
           ex.printStackTrace();
@@ -92,7 +92,18 @@ class ServerHandler extends Thread {
               ObjectOutputStream oos = s.getOutputStream();
               //generate a new initvector
               // and send it along as well
-              try {oos.writeObject(Encrypt.encrypt("<"+sender.getClientName() + "> ~" + message + "\n",secretKey,initVector));}
+              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray(), secretKey, initVector));}
+              catch (Exception ex) {ex.printStackTrace();} 
+          }
+        }
+    }
+    public static void broadcast(ArrayList<String> data, String sender) {
+      for (SocketHandler s : activeClients) {
+          if(!s.getClientName().equals(sender)) {
+              ObjectOutputStream oos = s.getOutputStream();
+              //generate a new initvector
+              // and send it along as well
+              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"FILE",data).getByteArray(), secretKey, initVector));}
               catch (Exception ex) {ex.printStackTrace();} 
           }
         }
@@ -104,7 +115,7 @@ class ServerHandler extends Thread {
           found = true;
           ObjectOutputStream oos = s.getOutputStream();
           try {
-            oos.writeObject(Encrypt.encrypt("<"+ sender + "> - " + message + "\n",secretKey,initVector));
+            oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"DIRECT",message,recipient).getByteArray(), secretKey, initVector));
           }
           catch (IOException ex) {
             ex.printStackTrace();

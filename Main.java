@@ -137,7 +137,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         messageHandler.start();
         btnConnect.setText("Disconnect");
 
-        oos.writeObject(nameInput.getText());
+        oos.writeObject(nameInput.getText()); // temporary
 
       }
       catch (Exception ex) {
@@ -166,15 +166,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       String comboBoxSelection = comboBox.getValue().toString();
 
       if (comboBoxSelection.equals("Everyone")) {
-        dataToSend = "BROADCAST~" + dataToSend;
-        oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()).getByteArray(),secretKey, initVector));
       }
       else {
-        dataToSend = "DIRECT~" + comboBox.getValue().toString() + "~" + dataToSend;
-        oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray(),secretKey, initVector));
       }
 
-      
       // need to send init vector as well
 
       oos.flush();
@@ -229,7 +226,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     taChat.appendText(s+"\n");
   }
 
-  private void processActiveClients() {
+  private void processActiveClients(ArrayList<String> activeClientsStrings) {
+    activeClients = activeClientsStrings;
     taClients.setText("");
     taClients.appendText("Me\n");
     for (String s : activeClients) {
@@ -253,22 +251,23 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       currentThread().setName("IncomingMessageHandler"); // mostly for debugging
       while(true) {
         try {
-            Object message = ois.readObject();
-            if (message instanceof String ) {
-              String decrypted = Encrypt.decrypt_with_key((String)message, secretKey, initVector);
-              String[] parsed = ((String)decrypted).split("~");
-              if (parsed[1].equals("FILE_LINE")) {
-                taFileView.appendText(parsed[2]);
-              }
-              else {
-                taChat.appendText(message+"\n");
-                taChat.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
-              }
+            byte[] incomingBytes = (byte[])ois.readObject();
+            byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
+            Transaction t = Transaction.reconstructTransaction(decryptedBytes);
 
-            }
-            else if (message instanceof ArrayList<?>) {
-              activeClients = (ArrayList<String>)message;
-              processActiveClients();
+            switch (t.getCommand()) {
+              case "BROADCAST":
+                taChat.appendText("<" + t.getClientName()+"> " + t.getMessage()+"\n");
+                break;
+              case "DIRECT":
+                taChat.appendText("Direct - <" + t.getClientName()+"> " + t.getMessage()+"\n");
+                break;
+              case "CLIENTS":
+                processActiveClients(t.getData());
+                break;
+              case "FILE":
+                fileEditHandler.processFileData(t);
+                break;
             }
         }
         catch (SocketException ex) {
@@ -291,19 +290,26 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       try {
         taFileView.setText("");
         Scanner sc = new Scanner(new FileInputStream(fileToUpload));
+        ArrayList<String> fileData = new ArrayList<String>();
         while (sc.hasNextLine()) {
           String line  = sc.nextLine();
+          fileData.add(line);
           taFileView.appendText(line+"\n");
-          try {
-            oos.writeObject(Encrypt.encrypt("FILE_LINE~"+line,secretKey,initVector));
-          }
-          catch (IOException ex) {
-            ex.printStackTrace();
-          }
         }
+          oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
       }
       catch (FileNotFoundException ex) {
         ex.printStackTrace();
+      }
+      catch (IOException ex) {
+        ex.printStackTrace();
+      }
+    }
+    public void processFileData(Transaction t) {
+      taFileView.setText("");
+      ArrayList<String> fileData = t.getData();
+      for (String s : fileData) {
+        taFileView.appendText(s+"\n");
       }
     }
   }    

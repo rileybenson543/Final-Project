@@ -44,23 +44,21 @@ public class SocketHandler extends Thread {
       clientName = (String)ois.readObject();
       ServerHandler.sendActiveClients();
       while (active) {
-          String dataIn = ois.readObject().toString();
+          byte[] incomingBytes = (byte[])ois.readObject();
+          byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
+          Transaction t = Transaction.reconstructTransaction(decryptedBytes);
 
-          // reads init vector
-          String decrypted = Encrypt.decrypt_with_key(dataIn, secretKey, initVector);
-          String[] parsed = decrypted.split("~");
-          if (parsed[0].equals("BROADCAST")) {
-            ServerHandler.broadcast(parsed[1],this);
+          switch (t.getCommand()) {
+            case "DIRECT":
+              ServerHandler.sendDirect(clientName,t.getRecipient(),t.getMessage());
+              break;
+            case "BROADCAST":
+              ServerHandler.broadcast(t.getMessage(), this);
+              break;
+            case "FILE":
+              fileEditHandler.receiveFile(t);
+              break;
           }
-          else if (parsed[0].equals("DIRECT")) {
-            ServerHandler.sendDirect(clientName,parsed[1],parsed[2]);
-          }
-          else if (parsed[0].equals("FILE_LINE")) {
-            fileEditHandler.receiveFile(decrypted,this);
-          }
-
-          Server.writeText("<"+ clientName +"> " + dataIn); // temperorary for debugging
-          Server.writeText("<"+ clientName +"> " + decrypted);
       }
     }
     catch (EOFException ex) {
@@ -80,7 +78,6 @@ public class SocketHandler extends Thread {
   public void setInactive() {      // Part of a current bug
     active = false;                // involving disconnecting clients
   }
-
   public ObjectOutputStream getOutputStream() {
     return oos;
   }
@@ -94,9 +91,9 @@ public class SocketHandler extends Thread {
     public void run() {
 
     }
-    public void receiveFile(String line, SocketHandler s) {
-      Server.writeText(line);
-      ServerHandler.broadcast(line,s);
+    public void receiveFile(Transaction t) {
+      Server.writeText("File from " + t.getClientName());
+      ServerHandler.broadcast(t.getData(),t.getClientName());
     }
   }
 } 
