@@ -18,6 +18,8 @@ public class SocketHandler extends Thread {
   private String clientName;
 
   private Boolean active = true;
+
+  ServerFileEditHandler fileEditHandler;
     
   public SocketHandler(Socket _s, KeyData _keyData) {
     s = _s;
@@ -31,6 +33,8 @@ public class SocketHandler extends Thread {
     catch (Exception ex) {
       ex.printStackTrace();
     }
+    fileEditHandler = new ServerFileEditHandler();
+    fileEditHandler.start();
   }
   public void run() {
 
@@ -48,8 +52,11 @@ public class SocketHandler extends Thread {
           if (parsed[0].equals("BROADCAST")) {
             ServerHandler.broadcast(parsed[1],this);
           }
-          else  {
-            ServerHandler.sendDirect(clientName,parsed[0],parsed[1]);
+          else if (parsed[0].equals("DIRECT")) {
+            ServerHandler.sendDirect(clientName,parsed[1],parsed[2]);
+          }
+          else if (parsed[0].equals("FILE_LINE")) {
+            fileEditHandler.receiveFile(decrypted,this);
           }
 
           Server.writeText("<"+ clientName +"> " + dataIn); // temperorary for debugging
@@ -83,5 +90,13 @@ public class SocketHandler extends Thread {
   public String getClientName() {
     return clientName;
   }
+  class ServerFileEditHandler extends Thread {
+    public void run() {
 
+    }
+    public void receiveFile(String line, SocketHandler s) {
+      Server.writeText(line);
+      ServerHandler.broadcast(line,s);
+    }
+  }
 } 

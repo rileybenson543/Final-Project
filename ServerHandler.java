@@ -92,7 +92,7 @@ class ServerHandler extends Thread {
               ObjectOutputStream oos = s.getOutputStream();
               //generate a new initvector
               // and send it along as well
-              try {oos.writeObject(Encrypt.encrypt("<"+sender.getClientName() + "> - " + message + "\n",secretKey,initVector));}
+              try {oos.writeObject(Encrypt.encrypt("<"+sender.getClientName() + "> ~" + message + "\n",secretKey,initVector));}
               catch (Exception ex) {ex.printStackTrace();} 
           }
         }
@@ -114,6 +114,5 @@ class ServerHandler extends Thread {
       if (!found) {
         Server.writeText("Direct message request to unkown recipient: "+recipient);
       }
-
     }
   }

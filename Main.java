@@ -170,7 +170,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
       }
       else {
-        dataToSend = comboBox.getValue().toString() + "~" + dataToSend;
+        dataToSend = "DIRECT~" + comboBox.getValue().toString() + "~" + dataToSend;
         oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
       }
 
@@ -255,10 +255,18 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         try {
             Object message = ois.readObject();
             if (message instanceof String ) {
-              taChat.appendText(message+"\n");
-              taChat.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
+              String decrypted = Encrypt.decrypt_with_key((String)message, secretKey, initVector);
+              String[] parsed = ((String)decrypted).split("~");
+              if (parsed[1].equals("FILE_LINE")) {
+                taFileView.appendText(parsed[2]);
+              }
+              else {
+                taChat.appendText(message+"\n");
+                taChat.appendText(Encrypt.decrypt_with_key((String)message,secretKey,initVector));
+              }
+
             }
-            else if (message instanceof ArrayList) {
+            else if (message instanceof ArrayList<?>) {
               activeClients = (ArrayList<String>)message;
               processActiveClients();
             }
@@ -284,7 +292,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         taFileView.setText("");
         Scanner sc = new Scanner(new FileInputStream(fileToUpload));
         while (sc.hasNextLine()) {
-          taFileView.appendText(sc.nextLine()+"\n");
+          String line  = sc.nextLine();
+          taFileView.appendText(line+"\n");
+          try {
+            oos.writeObject(Encrypt.encrypt("FILE_LINE~"+line,secretKey,initVector));
+          }
+          catch (IOException ex) {
+            ex.printStackTrace();
+          }
         }
       }
       catch (FileNotFoundException ex) {
