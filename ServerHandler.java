@@ -38,7 +38,7 @@ class ServerHandler extends Thread {
             System.out.println("Accepted connection from "+s.getInetAddress().getHostName());
             SocketHandler socketHandler = new SocketHandler(s,keyData);
             socketHandler.start();
-            activeClients.add(socketHandler);
+            // activeClients.add(socketHandler);
         }
       }
       catch (Exception ex) {
@@ -62,7 +62,18 @@ class ServerHandler extends Thread {
         ex.printStackTrace();
       }
     }
-    
+    public static boolean nameInUse(String name) {
+      boolean inUse = false;
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(name)) {
+          inUse = true;
+        }
+      }
+      return inUse;
+    }
+    public static void addClient(SocketHandler s) {
+      activeClients.add(s);  
+    }
     public static void setInactiveSocketHandler(SocketHandler _s) {
       activeClients.remove(_s);
 

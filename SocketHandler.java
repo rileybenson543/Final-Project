@@ -41,9 +41,11 @@ public class SocketHandler extends Thread {
     Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
     currentThread().setName("SocketHandler"); // mostly for debugging
     try {
-      clientName = (String)ois.readObject();
-      ServerHandler.sendActiveClients();
-      while (active) {
+      clientName = Encrypt.decrypt_with_key((String)ois.readObject(), secretKey, initVector);
+      if (!ServerHandler.nameInUse(clientName)) {
+        ServerHandler.addClient(this);
+        ServerHandler.sendActiveClients();
+        while (active) {
           byte[] incomingBytes = (byte[])ois.readObject();
           byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
           Transaction t = Transaction.reconstructTransaction(decryptedBytes);
@@ -59,6 +61,10 @@ public class SocketHandler extends Thread {
               fileEditHandler.receiveFile(t);
               break;
           }
+        }
+      }
+      else {
+        oos.writeObject(Encrypt.encryptToBytes(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray(), secretKey, initVector));
       }
     }
     catch (EOFException ex) {

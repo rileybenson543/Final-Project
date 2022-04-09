@@ -134,14 +134,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         socket = new Socket("localhost",12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
+        oos.writeObject(Encrypt.encrypt(nameInput.getText(), secretKey, initVector)); // temporary
         taChat.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
         btnConnect.setText("Disconnect");
         comboBox.setDisable(false);
 
-        oos.writeObject(nameInput.getText()); // temporary
-
+        
       }
       catch (Exception ex) {
           ex.printStackTrace();
@@ -275,6 +275,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 break;
               case "FILE":
                 fileEditHandler.processFileData(t);
+                break;
+              case "NAME_IN_USE":
+                taChat.appendText(t.getMessage()+" is in use, please try another name\n");
+                Platform.runLater(new Runnable() {public void run() {disconnect();}});
                 break;
             }
         }
