@@ -1,6 +1,7 @@
 
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.*;
 import javafx.event.*;
 import javafx.scene.*;
@@ -77,7 +78,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnGenerate.setOnAction(this);
     btnUpload.setOnAction(this);
 
-    // comboBox.setValue("Not Connected"); // default value for combo box
+    comboBox.setDisable(true);
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
     fpChat.getChildren().addAll(comboBox,tField,btnSend,taChat);
@@ -137,6 +138,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
         btnConnect.setText("Disconnect");
+        comboBox.setDisable(false);
 
         oos.writeObject(nameInput.getText()); // temporary
 
@@ -154,6 +156,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       if (socket != null) {socket.close();}
       btnConnect.setText("Connect");
       taClients.setText("Not Connected");
+      comboBox.setItems(null);
+      comboBox.setDisable(true);
     }
     catch (IOException ex) {
       ex.printStackTrace();
@@ -235,15 +239,18 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       if (!s.equals(nameInput.getText())) {
         taClients.appendText(s+"\n");
       }
-      // else {
-      //   activeClients.remove(s);
-      // }
     }
-
     activeClients.add("Everyone");
+    activeClients.remove(nameInput.getText());
     activeClientsComboList = FXCollections.observableArrayList(activeClients);
+    Platform.runLater(new Runnable() {
+      public void run() {
+        comboBox.setItems(activeClientsComboList);
+        comboBox.setValue("Everyone");
+      }
+    });
 
-    comboBox.setItems(activeClientsComboList);
+   
   }
 
   class IncomingMessageHandler extends Thread {
