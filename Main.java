@@ -10,6 +10,7 @@ import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Scanner;
 import java.io.*;
 
@@ -280,8 +281,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
   }
   class FileEditHandler extends Thread {
+    private String prevFileData;
     public void run() {
-
+      while (true) {
+        prevFileData = taFileView.getText();
+        try{sleep(100);}catch(InterruptedException ex) {}
+        if (!taFileView.getText().equals(prevFileData)) {
+          ArrayList<String> fileData = new ArrayList<String>();
+          Collections.addAll(fileData, taFileView.getText().split("\n"));
+          sendFile(fileData);
+        }
+      }
     }
     public void upload() {
       FileChooser chooser = new FileChooser();  // create file chooser object
@@ -296,10 +306,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           fileData.add(line);
           taFileView.appendText(line+"\n");
         }
-          oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
+          sendFile(fileData);
       }
       catch (FileNotFoundException ex) {
         ex.printStackTrace();
+      }
+    }
+    public void sendFile(ArrayList<String> fileData) {
+      try {
+        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
       }
       catch (IOException ex) {
         ex.printStackTrace();
@@ -311,6 +326,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       for (String s : fileData) {
         taFileView.appendText(s+"\n");
       }
+      prevFileData = taFileView.getText();
     }
   }    
 }	
