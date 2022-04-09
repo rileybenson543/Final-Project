@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 
 import java.net.*;
+import java.util.ArrayList;
 import java.io.*;
 
 import javax.crypto.spec.IvParameterSpec;
@@ -168,5 +169,236 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   }
   public static void writeText(String s) {
     tArea.appendText(s+"\n");
+  }
+  
+  class ServerHandler extends Thread {
+
+    private ServerSocket ss;
+    
+    private KeyData keyData;
+
+    private SecretKeySpec secretKey;
+    private IvParameterSpec initVector;
+    
+    private ArrayList<SocketHandler> activeClients = new ArrayList<SocketHandler>();
+    
+    private volatile Boolean active = true;
+
+    ObjectOutputStream oos;
+
+    
+    public ServerHandler(KeyData _keyData) {
+        keyData = _keyData;
+    }
+    
+    public void run() {
+      secretKey = keyData.getKey();
+      initVector = new IvParameterSpec(keyData.getInitVector());
+      try {
+        ss = new ServerSocket(12345);
+        currentThread().setName("ServerHandler");
+        while(active) {
+            System.out.println("waiting for connection");
+            Socket s = ss.accept();
+            System.out.println("Accepted connection from "+s.getInetAddress().getHostName());
+            SocketHandler socketHandler = new SocketHandler(s,keyData);
+            socketHandler.start();
+            // activeClients.add(socketHandler);
+        }
+      }
+      catch (Exception ex) {
+        System.out.println("Socket Closed");
+      }
+    }
+
+    public void shutdown() {
+      try {
+        active = false;
+        ss.close();
+        for (SocketHandler s : activeClients) {
+            s.setInactive();
+            // s.stop(); //need to find a better way to do this
+        }
+        System.out.println("shutdown");
+        activeClients.clear();
+        // Thread.currentThread().interrupt();
+      }
+      catch (Exception ex) {
+        ex.printStackTrace();
+      }
+    }
+    public boolean nameInUse(String name) {
+      boolean inUse = false;
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(name)) {
+          inUse = true;
+        }
+      }
+      return inUse;
+    }
+    public void addClient(SocketHandler s) {
+      activeClients.add(s);  
+    }
+    public void setInactiveSocketHandler(SocketHandler _s) {
+      activeClients.remove(_s);
+
+      sendActiveClients();
+
+      System.out.println(_s.getClientName()+" Disconnected");
+
+    }
+    public void sendActiveClients() {
+      ArrayList<String> activeClientsStrings = new ArrayList<String>();
+      for (SocketHandler s : activeClients) {
+        activeClientsStrings.add(s.getClientName());
+      }
+      for (SocketHandler s : activeClients) {
+        ObjectOutputStream oos = s.getOutputStream();
+        try {
+          oos.writeObject(Encrypt.encryptToBytes(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray(),secretKey,initVector));
+        }
+        catch (IOException ex) {
+          ex.printStackTrace();
+        }
+      }
+    }
+    public void broadcast(String message,SocketHandler sender) {
+      for (SocketHandler s : activeClients) {
+          if(!s.equals(sender)) {
+              ObjectOutputStream oos = s.getOutputStream();
+              //generate a new initvector
+              // and send it along as well
+              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray(), secretKey, initVector));}
+              catch (Exception ex) {ex.printStackTrace();} 
+          }
+        }
+    }
+    public void broadcast(ArrayList<String> data, String sender) {
+      for (SocketHandler s : activeClients) {
+          if(!s.getClientName().equals(sender)) {
+              ObjectOutputStream oos = s.getOutputStream();
+              //generate a new initvector
+              // and send it along as well
+              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"FILE",data).getByteArray(), secretKey, initVector));}
+              catch (Exception ex) {ex.printStackTrace();} 
+          }
+        }
+    }
+    public void sendDirect(String sender,String recipient,String message) {
+      boolean found = false;
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(recipient)) {
+          found = true;
+          ObjectOutputStream oos = s.getOutputStream();
+          try {
+            oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"DIRECT",message,recipient).getByteArray(), secretKey, initVector));
+          }
+          catch (IOException ex) {
+            ex.printStackTrace();
+          }
+        }
+      }
+      if (!found) {
+        Server.writeText("Direct message request to unkown recipient: "+recipient);
+      }
+    }
+    class SocketHandler extends Thread {
+
+      private Socket s;
+    
+      private SecretKeySpec secretKey;
+      private IvParameterSpec initVector;
+    
+      private ObjectInputStream ois;
+      private ObjectOutputStream oos;
+    
+      private String clientName;
+    
+      private Boolean active = true;
+    
+      ServerFileEditHandler fileEditHandler;
+        
+      public SocketHandler(Socket _s, KeyData _keyData) {
+        s = _s;
+        KeyData keyData = _keyData;
+        initVector = new IvParameterSpec(keyData.getInitVector());
+        secretKey = keyData.getKey();
+        try {
+          ois = new ObjectInputStream(s.getInputStream());
+          oos = new ObjectOutputStream(s.getOutputStream());
+        }
+        catch (Exception ex) {
+          ex.printStackTrace();
+        }
+        fileEditHandler = new ServerFileEditHandler();
+        fileEditHandler.start();
+      }
+      public void run() {
+    
+        Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
+        currentThread().setName("SocketHandler"); // mostly for debugging
+        try {
+          clientName = Encrypt.decrypt_with_key((String)ois.readObject(), secretKey, initVector);
+          if (!nameInUse(clientName)) {
+            addClient(this);
+            sendActiveClients();
+            while (active) {
+              byte[] incomingBytes = (byte[])ois.readObject();
+              byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
+              Transaction t = Transaction.reconstructTransaction(decryptedBytes);
+    
+              switch (t.getCommand()) {
+                case "DIRECT":
+                  sendDirect(clientName,t.getRecipient(),t.getMessage());
+                  break;
+                case "BROADCAST":
+                  broadcast(t.getMessage(), this);
+                  break;
+                case "FILE":
+                  fileEditHandler.receiveFile(t);
+                  break;
+              }
+            }
+          }
+          else {
+            oos.writeObject(Encrypt.encryptToBytes(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray(), secretKey, initVector));
+          }
+        }
+        catch (EOFException ex) {
+          try {
+            s.close();
+            setInactiveSocketHandler(this);
+          }
+          catch (IOException io) {
+            
+          }
+        }
+        catch (Exception ex) {
+          ex.printStackTrace();
+        }
+          // if (!active) {System.out.println("inactive");}
+      }
+      public void setInactive() {      // Part of a current bug
+        active = false;                // involving disconnecting clients
+      }
+      public ObjectOutputStream getOutputStream() {
+        return oos;
+      }
+      public Socket getSocket() {
+        return s;
+      }
+      public String getClientName() {
+        return clientName;
+      }
+      class ServerFileEditHandler extends Thread {
+        public void run() {
+    
+        }
+        public void receiveFile(Transaction t) {
+          writeText("File from " + t.getClientName());
+          broadcast(t.getData(),t.getClientName());
+        }
+      }
+    }
   }
 }	
