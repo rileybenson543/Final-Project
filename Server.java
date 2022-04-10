@@ -1,6 +1,7 @@
 
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -137,7 +138,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     readKey();
   }
   public void writeText(String s) {
-    tArea.appendText(s+"\n");
+    Platform.runLater(new Runnable() {
+      public void run() {
+        tArea.appendText(s+"\n");
+      }
+    });
+    
   }
   
   class ServerHandler extends Thread {

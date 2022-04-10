@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.*;
 import javafx.event.*;
+import javafx.geometry.Pos;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -41,11 +42,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private TextField nameInput = new TextField();
 
   private Label nameLbl = new Label("Name");
+  private Label fileEditUser = new Label("");
 
   private FlowPane fpChat = new FlowPane(8,8);
   private FlowPane fpMain = new FlowPane(8,8);
   private FlowPane fpFileView = new FlowPane(8,8);
   private FlowPane fp1 = new FlowPane(8,8);
+  private FlowPane fp2 = new FlowPane(8,8);
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   ObservableList<String> activeClientsComboList;
@@ -78,13 +81,18 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnGenerate.setOnAction(this);
     btnUpload.setOnAction(this);
 
+    tField.setPrefColumnCount(25);
+
     comboBox.setDisable(true);
 
+    fpFileView.setAlignment(Pos.CENTER_RIGHT);
+
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-    fpChat.getChildren().addAll(comboBox,tField,btnSend,taChat);
-    fpFileView.getChildren().addAll(taFileView,btnUpload);
+    fp2.getChildren().addAll(btnGenerate);
+    fpChat.getChildren().addAll(taChat,comboBox,tField,btnSend);
+    fpFileView.getChildren().addAll(taFileView,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
-    root.getChildren().addAll(fp1,btnGenerate,fpMain,taClients);
+    root.getChildren().addAll(fp1,fp2,fpMain,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -93,7 +101,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
     });
 
-    scene = new Scene(root, 600, 600); 
+    scene = new Scene(root, 1000, 600); 
                                         
     stage.setScene(scene);              
     stage.show();
@@ -156,6 +164,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       if (socket != null) {socket.close();}
       btnConnect.setText("Connect");
       taClients.setText("Not Connected");
+      fileEditUser.setText("");
       comboBox.setItems(null);
       comboBox.setDisable(true);
     }
@@ -296,11 +305,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     public void run() {
       while (true) {
         prevFileData = taFileView.getText();
-        try{sleep(100);}catch(InterruptedException ex) {}
-        if (!taFileView.getText().equals(prevFileData)) {
-          ArrayList<String> fileData = new ArrayList<String>();
-          Collections.addAll(fileData, taFileView.getText().split("\n"));
-          sendFile(fileData);
+        try{sleep(500);}catch(InterruptedException ex) {}  // slow down the text area polling
+        try {
+          if (!taFileView.getText().equals(prevFileData)) {
+            ArrayList<String> fileData = new ArrayList<String>();
+            Collections.addAll(fileData, taFileView.getText().split("\n"));
+            sendFile(fileData);
+          }
+        }
+        catch (Exception ex) {
+          ex.printStackTrace();
         }
       }
     }
@@ -326,18 +340,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     public void sendFile(ArrayList<String> fileData) {
       try {
         oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
+        Platform.runLater(new Runnable() {
+          public void run() {
+            fileEditUser.setText("Edited by: You");
+          }
+        }); 
       }
       catch (IOException ex) {
         DispAlert.alertException(ex);
       }
     }
     public void processFileData(Transaction t) {
-      taFileView.setText("");
-      ArrayList<String> fileData = t.getData();
-      for (String s : fileData) {
-        taFileView.appendText(s+"\n");
-      }
-      prevFileData = taFileView.getText();
+      Platform.runLater(new Runnable() {public void run() {
+        taFileView.setText("");
+        fileEditUser.setText("Edited by: " + t.getClientName());
+        ArrayList<String> fileData = t.getData();
+        for (String s : fileData) {
+          taFileView.appendText(s+"\n");
+        }
+        prevFileData = taFileView.getText();
+      }});
+
     }
   }    
 }	
