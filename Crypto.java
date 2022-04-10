@@ -27,7 +27,7 @@ public class Crypto {
       SecretKeySpec secretKey = new SecretKeySpec(tempSecret.getEncoded(), "AES");
       return secretKey;
     } catch (Exception ex) {
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
     }
     return null;
   }
@@ -47,8 +47,8 @@ public class Crypto {
       return Base64.getEncoder().encodeToString(cipher.doFinal(strToEncrypt.getBytes(StandardCharsets.UTF_8))); // returns
                                                                                                                 // encrypted
                                                                                                                 // text
-    } catch (Exception e) {
-      System.out.println("Error while encrypting: " + e.toString());
+    } catch (Exception ex) {
+      DispAlert.alertException(ex);
     }
     return null;
   }
@@ -62,7 +62,7 @@ public class Crypto {
       return new String(cipher.doFinal(Base64.getDecoder().decode(encrypted)));
     } catch (Exception ex) {
 
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
       return null;
     }
   }
@@ -73,8 +73,8 @@ public class Crypto {
       cipher.init(Cipher.ENCRYPT_MODE, secretKey, initVector); // initializes the cipher object
       return cipher.doFinal(toEncrypt);
                                     
-    } catch (Exception e) {
-      System.out.println("Error while encrypting: " + e.toString());
+    } catch (Exception ex) {
+      DispAlert.alertException(ex);
     }
     return null;
   }
@@ -90,7 +90,7 @@ public class Crypto {
     } 
     catch (Exception ex) {
 
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
       return null;
     }
   }

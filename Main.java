@@ -144,7 +144,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         
       }
       catch (Exception ex) {
-          ex.printStackTrace();
+        DispAlert.alertException(ex);
       }
     }
     else {
@@ -160,7 +160,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       comboBox.setDisable(true);
     }
     catch (IOException ex) {
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
     }
   }
   private void send(String dataToSend) {
@@ -182,7 +182,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       oos.flush();
     }
     catch (Exception ex) {
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
     }
   }
   private void readKey() {
@@ -204,7 +204,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       taChat.appendText("Key file was not found. One will need to be generated\n");
     }
     catch (Exception ex) {
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
     }
 
   }
@@ -223,7 +223,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       oos.close();
     }
     catch (Exception ex) {
-      ex.printStackTrace();
+      DispAlert.alertException(ex);
     }
   }
 
@@ -286,7 +286,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
         } 
         catch (Exception ex) {
-            ex.printStackTrace();
+          DispAlert.alertException(ex);
         }
       }
     }
@@ -320,7 +320,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           sendFile(fileData);
       }
       catch (FileNotFoundException ex) {
-        ex.printStackTrace();
+        DispAlert.alertException(ex);
       }
     }
     public void sendFile(ArrayList<String> fileData) {
@@ -328,7 +328,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
       }
       catch (IOException ex) {
-        ex.printStackTrace();
+        DispAlert.alertException(ex);
       }
     }
     public void processFileData(Transaction t) {
