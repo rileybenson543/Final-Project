@@ -118,7 +118,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
-      oos.writeObject(Encrypt.encrypt(dataToSend,secretKey,initVector));
+      oos.writeObject(Crypto.encrypt(dataToSend,secretKey,initVector));
       oos.flush();
     }
     catch (Exception ex) {
@@ -150,8 +150,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   }
   private void generateKey() {
 
-    secretKey = Encrypt.generateKey();
-    initVectorBytes = Encrypt.getInitVector();
+    secretKey = Crypto.generateKey();
+    initVectorBytes = Crypto.getInitVector();
     initVector = new IvParameterSpec(initVectorBytes);
 
     KeyData data = new KeyData(secretKey,initVectorBytes);
@@ -255,7 +255,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
         try {
-          oos.writeObject(Encrypt.encryptToBytes(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray(),secretKey,initVector));
+          oos.writeObject(Crypto.encryptToBytes(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray(),secretKey,initVector));
         }
         catch (IOException ex) {
           ex.printStackTrace();
@@ -268,7 +268,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
               ObjectOutputStream oos = s.getOutputStream();
               //generate a new initvector
               // and send it along as well
-              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray(), secretKey, initVector));}
+              try {oos.writeObject(Crypto.encryptToBytes(new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray(), secretKey, initVector));}
               catch (Exception ex) {ex.printStackTrace();} 
           }
         }
@@ -279,7 +279,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
               ObjectOutputStream oos = s.getOutputStream();
               //generate a new initvector
               // and send it along as well
-              try {oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"FILE",data).getByteArray(), secretKey, initVector));}
+              try {oos.writeObject(Crypto.encryptToBytes(new Transaction(sender,"FILE",data).getByteArray(), secretKey, initVector));}
               catch (Exception ex) {ex.printStackTrace();} 
           }
         }
@@ -291,7 +291,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           found = true;
           ObjectOutputStream oos = s.getOutputStream();
           try {
-            oos.writeObject(Encrypt.encryptToBytes(new Transaction(sender,"DIRECT",message,recipient).getByteArray(), secretKey, initVector));
+            oos.writeObject(Crypto.encryptToBytes(new Transaction(sender,"DIRECT",message,recipient).getByteArray(), secretKey, initVector));
           }
           catch (IOException ex) {
             ex.printStackTrace();
@@ -338,13 +338,13 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         Server.writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
         currentThread().setName("SocketHandler"); // mostly for debugging
         try {
-          clientName = Encrypt.decrypt_with_key((String)ois.readObject(), secretKey, initVector);
+          clientName = Crypto.decrypt_with_key((String)ois.readObject(), secretKey, initVector);
           if (!nameInUse(clientName)) {
             addClient(this);
             sendActiveClients();
             while (active) {
               byte[] incomingBytes = (byte[])ois.readObject();
-              byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
+              byte[] decryptedBytes = Crypto.decryptToBytes(incomingBytes, secretKey, initVector);
               Transaction t = Transaction.reconstructTransaction(decryptedBytes);
     
               switch (t.getCommand()) {
@@ -361,7 +361,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             }
           }
           else {
-            oos.writeObject(Encrypt.encryptToBytes(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray(), secretKey, initVector));
+            oos.writeObject(Crypto.encryptToBytes(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray(), secretKey, initVector));
           }
         }
         catch (EOFException ex) {

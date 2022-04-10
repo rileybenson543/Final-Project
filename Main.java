@@ -134,7 +134,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         socket = new Socket("localhost",12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
-        oos.writeObject(Encrypt.encrypt(nameInput.getText(), secretKey, initVector)); // temporary
+        oos.writeObject(Crypto.encrypt(nameInput.getText(), secretKey, initVector)); // temporary
         taChat.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
@@ -171,10 +171,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       String comboBoxSelection = comboBox.getValue().toString();
 
       if (comboBoxSelection.equals("Everyone")) {
-        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()).getByteArray(),secretKey, initVector));
+        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()).getByteArray(),secretKey, initVector));
       }
       else {
-        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray(),secretKey, initVector));
+        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray(),secretKey, initVector));
       }
 
       // need to send init vector as well
@@ -210,8 +210,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }
   private void generateKey() {
 
-    secretKey = Encrypt.generateKey();
-    initVectorBytes = Encrypt.getInitVector();
+    secretKey = Crypto.generateKey();
+    initVectorBytes = Crypto.getInitVector();
     initVector = new IvParameterSpec(initVectorBytes);
 
     KeyData data = new KeyData(secretKey,initVectorBytes);
@@ -260,7 +260,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       while(true) {
         try {
             byte[] incomingBytes = (byte[])ois.readObject();
-            byte[] decryptedBytes = Encrypt.decryptToBytes(incomingBytes, secretKey, initVector);
+            byte[] decryptedBytes = Crypto.decryptToBytes(incomingBytes, secretKey, initVector);
             Transaction t = Transaction.reconstructTransaction(decryptedBytes);
 
             switch (t.getCommand()) {
@@ -325,7 +325,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void sendFile(ArrayList<String> fileData) {
       try {
-        oos.writeObject(Encrypt.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
+        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
       }
       catch (IOException ex) {
         ex.printStackTrace();

@@ -10,16 +10,14 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 
-public class Encrypt {
+public class Crypto {
 
-  private static final String SECRET_KEY = "secret key";
-  private static byte[] salt; // random sequence that makes the hash output unique
-  private static SecureRandom random;
+  private static SecureRandom random = new SecureRandom();
 
   public static SecretKeySpec generateKey() {
-    random = new SecureRandom(); // creating random generator
+    final String SECRET_KEY = "secret key"; // temp
 
-    salt = new byte[16]; // byte array to hold salt
+    byte[] salt = new byte[16]; // random sequence that makes the hash output unique
     random.nextBytes(salt); // fills salt array with random data
 
     try {
