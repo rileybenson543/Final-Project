@@ -1,1 +1,1 @@
-java --class-path=. --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls %*%
+java --class-path=. --module-path "C:\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls %*%

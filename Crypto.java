@@ -1,97 +1,141 @@
-import java.security.SecureRandom;
-import java.security.spec.KeySpec;
 import java.util.Base64;
-
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
+import java.security.*;
+import javax.crypto.KeyGenerator;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
+
+//@version 2.0.1
 
 public class Crypto {
+   
+   private PrivateKey privKey;//RSA encryption 2048 key size 
+   private PublicKey pubKey;
+   private SecretKey secKey;
+   
+ 
+  
+  public Crypto() { //constructor to initialize and create key pair
 
-  private static SecureRandom random = new SecureRandom();
+ }//end constructor
+   
+   public void init() {
+      try {
+         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+         keyGen.initialize(2048);   
+         //instantiate keys
+         KeyPair pair = keyGen.generateKeyPair();
+         privKey = pair.getPrivate();
+         pubKey = pair.getPublic();
+         
+         KeyGenerator AESgen = KeyGenerator.getInstance("AES");
+         AESgen.init(128);
+         secKey = AESgen.generateKey();
+         System.out.print(secKey);
+      
+      }catch(NoSuchAlgorithmException nsae) {
+         nsae.printStackTrace();
+      }
+   }
+   
+   public void genAES() throws Exception{
 
-  public static SecretKeySpec generateKey() {
-    final String SECRET_KEY = "secret key"; // temp
-
-    byte[] salt = new byte[16]; // random sequence that makes the hash output unique
-    random.nextBytes(salt); // fills salt array with random data
-
-    try {
-      SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-      KeySpec keySpecifications = new PBEKeySpec(SECRET_KEY.toCharArray(), salt, 65536, 256);
-      SecretKey tempSecret = secretKeyFactory.generateSecret(keySpecifications);
-      SecretKeySpec secretKey = new SecretKeySpec(tempSecret.getEncoded(), "AES");
-      return secretKey;
-    } catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-    return null;
-  }
-
-  public static byte[] getInitVector() {
-    byte[] bytesInitVector = new byte[16]; // an array of bytes to hold IV data
-    random.nextBytes(bytesInitVector); // fills array with random data
-    return bytesInitVector;
-
-  }
-
-  public static String encrypt(String strToEncrypt, SecretKeySpec secretKey, IvParameterSpec initVector) {
-    try {
-
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding"); // creates cipher object with specified algorithim
-      cipher.init(Cipher.ENCRYPT_MODE, secretKey, initVector); // initializes the cipher object
-      return Base64.getEncoder().encodeToString(cipher.doFinal(strToEncrypt.getBytes(StandardCharsets.UTF_8))); // returns
-                                                                                                                // encrypted
-                                                                                                                // text
-    } catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-    return null;
-  }
-
-  public static String decrypt_with_key(String encrypted, SecretKeySpec secretKey, IvParameterSpec initVector) { // unused will need to be removed
-    try {
-
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-      cipher.init(Cipher.DECRYPT_MODE, secretKey, initVector);
-
-      return new String(cipher.doFinal(Base64.getDecoder().decode(encrypted)));
-    } catch (Exception ex) {
-
-      DispAlert.alertException(ex);
-      return null;
-    }
-  }
-  public static byte[] encryptToBytes(byte[] toEncrypt, SecretKeySpec secretKey, IvParameterSpec initVector) {
-    try {
-
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding"); // creates cipher object with specified algorithim
-      cipher.init(Cipher.ENCRYPT_MODE, secretKey, initVector); // initializes the cipher object
-      return cipher.doFinal(toEncrypt);
-                                    
-    } catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-    return null;
-  }
-
-  public static byte[] decryptToBytes(byte[] encrypted, SecretKeySpec secretKey, IvParameterSpec initVector) {
-    try {
-
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-      cipher.init(Cipher.DECRYPT_MODE, secretKey, initVector);
-
-      return cipher.doFinal(encrypted);
-
-    } 
-    catch (Exception ex) {
-
-      DispAlert.alertException(ex);
-      return null;
-    }
-  }
-}
+   }
+   
+   
+   //accessor methods
+   public PublicKey getPublicKey() {return pubKey;}
+   public PrivateKey getPrivateKey() {return privKey;} // may need to be removed, used for testing
+   public SecretKey getSecretKey() {return secKey;}
+   
+   
+   //encrypt
+   //returns an encrypted byte array using AES symmetric key
+   public byte[] encrypt(String data, SecretKey _secKey) throws Exception{ 
+      Cipher aesCipher = Cipher.getInstance("AES");
+      aesCipher.init(Cipher.ENCRYPT_MODE, _secKey);
+      
+      byte[] encryptedBytes = aesCipher.doFinal(data.getBytes());
+      return encryptedBytes;
+   }
+   //encrypt
+   //returns an encrypted byte array using AES symmetric key
+   public byte[] encrypt(Transaction data, SecretKey secKey) throws Exception{ 
+      Cipher aesCipher = Cipher.getInstance("AES");
+      aesCipher.init(Cipher.ENCRYPT_MODE, secKey);
+      
+      byte[] encryptedBytes = aesCipher.doFinal(data.getByteArray());
+      return encryptedBytes;
+   }
+   
+   //decrypt
+   //method to convert input ciphertext into plain text\
+   //@param - encryptedData - data recieved in ciphertext by client or server
+   public byte[] decrypt(byte[] encryptedData, SecretKey secKey) throws Exception{
+      byte[] encryptedBytes = encryptedData;
+      
+      Cipher cipher = Cipher.getInstance("AES");
+      cipher.init(Cipher.DECRYPT_MODE,secKey);//create decrypt cipher
+      
+      byte[] decryptedData = cipher.doFinal(encryptedBytes);
+      return decryptedData;
+   }
+   
+   //decrypt
+   //method to convert input ciphertext into plain text\
+   //@param - encryptedData - data recieved in ciphertext by client or server   
+   public String decrypt(String encryptedData, SecretKey _secKey) throws Exception{
+      byte[] encryptedBytes = decode(encryptedData);
+      
+      Cipher cipher = Cipher.getInstance("AES");
+      cipher.init(Cipher.DECRYPT_MODE,_secKey);//create decrypt cipher
+      
+      byte[] decryptedData = cipher.doFinal(encryptedBytes);
+      return new String(decryptedData, "UTF8");
+   }
+   
+   
+   //encryptKey()
+   //returns the encrypted AES symmetric key
+   public byte[] encryptKey(PublicKey _pubKey) throws Exception{
+      Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+      
+      
+      cipher.init(Cipher.ENCRYPT_MODE, _pubKey);
+      byte[] encryptedKey = cipher.doFinal(secKey.getEncoded());
+      System.out.print(secKey.getEncoded());
+      return encryptedKey;
+      
+   }
+   
+   
+   //decryptKey()
+   //returns the decrypted AES symmetric key
+   public SecretKey decryptKey(byte[] encryptedKey, PrivateKey _privKey) throws Exception {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+      cipher.init(Cipher.PRIVATE_KEY, _privKey);
+      
+      byte[] decryptedKey = cipher.doFinal(encryptedKey);
+      SecretKey original = new SecretKeySpec(decryptedKey, 0, decryptedKey.length, "AES"); 
+      
+      return original;
+   }
+   
+   //server hands out public key, 
+     
+  
+   
+   //encode
+   public static String encode(byte[] data) {
+      return Base64.getEncoder().encodeToString(data);
+   }
+   
+   
+   //decode
+   public static byte[] decode(String data) {
+      return Base64.getDecoder().decode(data);
+   }
+}//end 
+   
+  
+  

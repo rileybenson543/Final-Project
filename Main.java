@@ -1,4 +1,4 @@
-
+//@ver 2.0.1
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -15,6 +15,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Scanner;
 import java.io.*;
+
+import java.security.*;
+import javax.crypto.SecretKey;
+
 
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -61,11 +65,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   IncomingMessageHandler messageHandler;
   FileEditHandler fileEditHandler;
 
-  private byte[] initVectorBytes;
-  private IvParameterSpec initVector;
-  private SecretKeySpec secretKey;
-
-  KeyData keyData;
+  //keys
+  private PublicKey pubKey;
+  private PrivateKey privKey;
+  private PublicKey serverPubKey;
+  private SecretKey secKey;
+  
+  Crypto crypto;
+  
 
   //ServerHandler serverHandler;
 
@@ -106,7 +113,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     stage.setScene(scene);              
     stage.show();
     
-    readKey();
+    
     fileEditHandler =  new FileEditHandler();
     fileEditHandler.start();
 
@@ -142,14 +149,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         socket = new Socket("localhost",12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
-        oos.writeObject(Crypto.encrypt(nameInput.getText(), secretKey, initVector)); // temporary
         taChat.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
+        doKeyExchange();
+        
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
         btnConnect.setText("Disconnect");
         comboBox.setDisable(false);
-
-        
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
@@ -180,10 +186,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       String comboBoxSelection = comboBox.getValue().toString();
 
       if (comboBoxSelection.equals("Everyone")) {
-        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()).getByteArray(),secretKey, initVector));
+        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()), secKey));
       }
       else {
-        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray(),secretKey, initVector));
+        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection), secKey));
       }
 
       // need to send init vector as well
@@ -194,47 +200,40 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  private void readKey() {
-    try {
-      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File("key.obj")));
-      keyData = (KeyData)ois.readObject();
-      secretKey = keyData.getKey();
-      initVectorBytes = keyData.getInitVector();
-      initVector = new IvParameterSpec(initVectorBytes);
-
-      if (initVector!=null && secretKey!=null) {
-        taChat.appendText("Successfully read key file\n");
-      }
-      else {
-        throw new Exception("File Read Error");
-      }      
-    }
-    catch (FileNotFoundException ex) {
-      taChat.appendText("Key file was not found. One will need to be generated\n");
-    }
-    catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-
-  }
+  
+  
+  //generateKey()
+  //creates Crypto object to insantiate keys
   private void generateKey() {
+      crypto = new Crypto();
+      crypto.init();
+      pubKey = crypto.getPublicKey();
+      privKey = crypto.getPrivateKey();
+      secKey = crypto.getSecretKey();
+      //taChat.appendText("\nKeys Generated" + "\n"+  pubKey + "\n" + privKey); //used for testing, can be removed
+  }//end generateKey()  
+  
+  
+  //doKeyExchange
+  //gets key from server, responds with client name and public key
+  private void doKeyExchange() {
+      //get public key from server
+     try {
+        String clientName = nameInput.getText();
+        serverPubKey = (PublicKey)ois.readObject();
+        
+        byte[] encryptedKey = crypto.encryptKey(serverPubKey);//encrypt symmetric key
 
-    secretKey = Crypto.generateKey();
-    initVectorBytes = Crypto.getInitVector();
-    initVector = new IvParameterSpec(initVectorBytes);
-
-    KeyData data = new KeyData(secretKey,initVectorBytes);
-    
-    try {
-      ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File("key.obj")));
-      oos.writeObject(data);
-      oos.flush();
-      oos.close();
-    }
-    catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-  }
+        oos.writeObject(encryptedKey);//send key to server
+        oos.flush();  
+        oos.writeObject(crypto.encrypt(new Transaction(clientName), secKey));//send name to server
+        oos.flush();
+        
+     }
+     catch (Exception e) {
+        e.printStackTrace();
+     }   
+  }//end doKeyExchange()
 
   public static void writeText(String s) {
     taChat.appendText(s+"\n");
@@ -269,7 +268,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       while(true) {
         try {
             byte[] incomingBytes = (byte[])ois.readObject();
-            byte[] decryptedBytes = Crypto.decryptToBytes(incomingBytes, secretKey, initVector);
+            byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
             Transaction t = Transaction.reconstructTransaction(decryptedBytes);
 
             switch (t.getCommand()) {
@@ -339,7 +338,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void sendFile(ArrayList<String> fileData) {
       try {
-        oos.writeObject(Crypto.encryptToBytes(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray(),secretKey,initVector));
+        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(), "FILE", fileData), secKey));
         Platform.runLater(new Runnable() {
           public void run() {
             fileEditUser.setText("Edited by: You");
@@ -348,6 +347,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
       catch (IOException ex) {
         DispAlert.alertException(ex);
+      }catch (Exception e) {
+        DispAlert.alertException(e);
       }
     }
     public void processFileData(Transaction t) {

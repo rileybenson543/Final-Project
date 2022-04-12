@@ -1,4 +1,4 @@
-
+//@ver 2.0.1
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -7,14 +7,16 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
+import java.nio.charset.StandardCharsets;
 
 import java.net.*;
 import java.util.ArrayList;
 import java.io.*;
+import java.security.*;
 
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-
+import javax.crypto.SecretKey;
 
 
 public class Server extends Application implements EventHandler<ActionEvent> {
@@ -38,11 +40,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   ObjectOutputStream oos;
 
 
-  private byte[] initVectorBytes;
-  private IvParameterSpec initVector;
-  private SecretKeySpec secretKey;
+  //instantiate Crypto class
+  Crypto crypto;
+  private PrivateKey privKey;
+  private PublicKey pubKey;
 
-  KeyData keyData;
 
   ServerHandler serverHandler;
 
@@ -69,7 +71,6 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     stage.setScene(scene);              
     stage.show();
     
-    readKey();
 
   }
   
@@ -80,7 +81,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
     switch(btn.getText()) {
         case "Receive Connections":
-          serverHandler = new ServerHandler(keyData);
+          serverHandler = new ServerHandler();
           serverHandler.start();
           btnReceive.setText("Disconnect");
           break;
@@ -93,50 +94,19 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           break;
       }
    }
-  private void readKey() {
-    try {
-      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File("key.obj")));
-      keyData = (KeyData)ois.readObject();
-      if(keyData!=null){
-        secretKey = keyData.getKey();
-        initVectorBytes = keyData.getInitVector();
-        initVector = new IvParameterSpec(initVectorBytes);
-      }
-      if (initVector!=null && secretKey!=null) {
-        tArea.appendText("Successfully read key file\n");
-      }
-      else {
-        DispAlert.alert("Key File Was Not Read");
-      }      
-    }
-    catch (FileNotFoundException ex) {
-      tArea.appendText("Key file was not found. One will need to be generated\n");
-    }
-    catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-
-  }
-  private void generateKey() {
-
-    secretKey = Crypto.generateKey();
-    initVectorBytes = Crypto.getInitVector();
-    initVector = new IvParameterSpec(initVectorBytes);
-
-    KeyData keyData = new KeyData(secretKey,initVectorBytes);
-    
-    try {
-      ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File("key.obj")));
-      oos.writeObject(keyData);
-      oos.flush();
-      oos.close();
-    }
-    catch (Exception ex) {
-      DispAlert.alertException(ex);
-    }
-
-    readKey();
-  }
+   
+  //generateKey()
+  //method to generate a keypair for the server
+  //server creates ONE key and distributes to clients
+  private void generateKey() {     
+      crypto = new Crypto();
+      crypto.init();
+      privKey =  crypto.getPrivateKey();
+      pubKey = crypto.getPublicKey();
+      //tArea.appendText("\nKeys Generated" + "\n"+  pubKey + "\n" + privKey); //used for testing, can be removed
+  }//end generateKey()
+  
+  
   public void writeText(String s) {
     Platform.runLater(new Runnable() {
       public void run() {
@@ -150,7 +120,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
     private ServerSocket ss;
     
-    private KeyData keyData;
+    // private KeyData keyData;
 
     private SecretKeySpec secretKey;
     private IvParameterSpec initVector;
@@ -162,13 +132,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     ObjectOutputStream oos;
 
     
-    public ServerHandler(KeyData _keyData) {
-        keyData = _keyData;
+    public ServerHandler() {
+
     }
     
     public void run() {
-      secretKey = keyData.getKey();
-      initVector = new IvParameterSpec(keyData.getInitVector());
       try {
         ss = new ServerSocket(12345);
         currentThread().setName("ServerHandler");
@@ -176,9 +144,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             System.out.println("waiting for connection");
             Socket s = ss.accept();
             System.out.println("Accepted connection from "+s.getInetAddress().getHostName());
-            SocketHandler socketHandler = new SocketHandler(s,keyData);
+            SocketHandler socketHandler = new SocketHandler(s);
             socketHandler.start();
-            // activeClients.add(socketHandler);
+            //activeClients.add(socketHandler);
         }
       }
       catch (Exception ex) {
@@ -216,9 +184,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     }
     public void setInactiveSocketHandler(SocketHandler _s) {
       activeClients.remove(_s);
-
       sendActiveClients();
-
       System.out.println(_s.getClientName()+" Disconnected");
 
     }
@@ -230,10 +196,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
         try {
-          oos.writeObject(Crypto.encryptToBytes(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray(),secretKey,initVector));
+          oos.writeObject(crypto.encrypt(new Transaction(s.getName(), "CLIENTS", activeClientsStrings), s.secKey));
         }
         catch (IOException ex) {
           DispAlert.alertException(ex);
+        }catch (Exception e) {
+          e.printStackTrace();
         }
       }
     }
@@ -241,9 +209,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       for (SocketHandler s : activeClients) {
           if(!s.equals(sender)) {
               ObjectOutputStream oos = s.getOutputStream();
-              //generate a new initvector
-              // and send it along as well
-              try {oos.writeObject(Crypto.encryptToBytes(new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray(), secretKey, initVector));}
+
+              try {oos.writeObject(crypto.encrypt(new Transaction(sender.getClientName(),"BROADCAST",message), s.secKey));}
               catch (Exception ex) {DispAlert.alertException(ex);} 
           }
         }
@@ -252,9 +219,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       for (SocketHandler s : activeClients) {
           if(!s.getClientName().equals(sender)) {
               ObjectOutputStream oos = s.getOutputStream();
-              //generate a new initvector
-              // and send it along as well
-              try {oos.writeObject(Crypto.encryptToBytes(new Transaction(sender,"FILE",data).getByteArray(), secretKey, initVector));}
+
+              try {oos.writeObject(crypto.encrypt(new Transaction(sender,"FILE",data), s.secKey));}
               catch (Exception ex) {DispAlert.alertException(ex);} 
           }
         }
@@ -266,11 +232,14 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           found = true;
           ObjectOutputStream oos = s.getOutputStream();
           try {
-            oos.writeObject(Crypto.encryptToBytes(new Transaction(sender,"DIRECT",message,recipient).getByteArray(), secretKey, initVector));
+            oos.writeObject(crypto.encrypt(new Transaction(sender,"DIRECT",message,recipient), s.secKey));
           }
           catch (IOException ex) {
             DispAlert.alertException(ex);
+          }catch (Exception e) {
+            e.printStackTrace();
           }
+
         }
       }
       if (!found) {
@@ -281,26 +250,24 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
       private Socket s;
     
-      private SecretKeySpec secretKey;
-      private IvParameterSpec initVector;
+      private PublicKey clientPublicKey;
+      private SecretKey secKey;
     
       private ObjectInputStream ois;
       private ObjectOutputStream oos;
-    
       private String clientName;
     
       private Boolean active = true;
     
       ServerFileEditHandler fileEditHandler;
         
-      public SocketHandler(Socket _s, KeyData _keyData) {
+      public SocketHandler(Socket _s) {
         s = _s;
-        KeyData keyData = _keyData;
-        initVector = new IvParameterSpec(keyData.getInitVector());
-        secretKey = keyData.getKey();
         try {
+
           ois = new ObjectInputStream(s.getInputStream());
           oos = new ObjectOutputStream(s.getOutputStream());
+          doKeyExchange();
         }
         catch (Exception ex) {
           DispAlert.alertException(ex);
@@ -313,13 +280,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
         currentThread().setName("SocketHandler"); // mostly for debugging
         try {
-          clientName = Crypto.decrypt_with_key((String)ois.readObject(), secretKey, initVector);
           if (!nameInUse(clientName)) {
             addClient(this);
             sendActiveClients();
             while (active) {
               byte[] incomingBytes = (byte[])ois.readObject();
-              byte[] decryptedBytes = Crypto.decryptToBytes(incomingBytes, secretKey, initVector);
+              byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
               Transaction t = Transaction.reconstructTransaction(decryptedBytes);
     
               switch (t.getCommand()) {
@@ -336,7 +302,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             }
           }
           else {
-            oos.writeObject(Crypto.encryptToBytes(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray(), secretKey, initVector));
+            oos.writeObject(crypto.encrypt(new Transaction(clientName, "NAME_IN_USE", clientName), secKey));
           }
         }
         catch (EOFException ex) {
@@ -353,6 +319,34 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
           // if (!active) {System.out.println("inactive");}
       }
+      
+      public void doKeyExchange() {
+          try {
+             //send client a public key
+             oos.writeObject(pubKey);
+             oos.flush();
+             
+            //getEncrypted key from client
+            byte[] encryptedKey = (byte[])ois.readObject();
+            
+            //decrypt secret key
+            secKey = crypto.decryptKey(encryptedKey, privKey);
+            //tArea.appendText("\n" + secKey); //used for testing, can be removed
+            
+            //decrypt name
+            byte[] encryptedName = ((byte[])ois.readObject());
+            byte[] clientBytes = crypto.decrypt(encryptedName, secKey);
+            Transaction t = Transaction.reconstructTransaction(clientBytes);
+            clientName = t.getClientName(); 
+             
+          }catch (IOException ioe) {
+            ioe.printStackTrace();
+          }catch (ClassNotFoundException cnfe) {
+             cnfe.printStackTrace();
+          }catch (Exception e) {
+             e.printStackTrace();
+          }
+      }//end doKeyExchange()
       public void setInactive() {      // Part of a current bug
         active = false;                // involving disconnecting clients
       }
@@ -364,6 +358,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       }
       public String getClientName() {
         return clientName;
+      }
+      public PublicKey getPublicKey() {
+         return pubKey;
       }
       class ServerFileEditHandler extends Thread {
         public void run() {

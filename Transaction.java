@@ -1,3 +1,6 @@
+//@ver 2.0.1
+
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -28,6 +31,11 @@ public class Transaction implements Serializable {
         command = _command;
         data = _data;
     }
+    
+    public Transaction(String _clientName) {
+      clientName = _clientName;
+    }
+    
     public String getClientName() {
         return clientName;
     }
