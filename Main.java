@@ -31,6 +31,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
   private Button btnUpload = new Button("Upload File");
+  private Button btnSave = new Button("Save File");
 
   private static TextArea taChat = new TextArea();
   
@@ -55,6 +56,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private ArrayList<String> activeClients = new ArrayList<String>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
+
   
   Socket socket;
 
@@ -89,6 +91,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     miGenKey.setOnAction(this);
     btnUpload.setOnAction(this);
+    btnSave.setOnAction(this);
+    btnSave.setDisable(true);
 
     tField.setPrefColumnCount(25);
 
@@ -98,7 +102,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
     fpChat.getChildren().addAll(taChat,comboBox,tField,btnSend);
-    fpFileView.getChildren().addAll(taFileView,btnUpload,fileEditUser);
+    fpFileView.getChildren().addAll(taFileView,btnSave,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
     root.getChildren().addAll(fp1,fpMain,taClients);
 
@@ -113,7 +117,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                                         
     stage.setScene(scene);              
     stage.show();
-    
     
     fileEditHandler =  new FileEditHandler();
     fileEditHandler.start();
@@ -141,6 +144,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           case "Upload File":
             fileEditHandler.upload();
             break;
+          case "Save File":
+            fileEditHandler.save();
         }
     }
     if (evt.getSource() instanceof MenuItem) {
@@ -268,8 +273,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         comboBox.setValue("Everyone");
       }
     });
-
-   
   }
 
   class IncomingMessageHandler extends Thread {
@@ -347,11 +350,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(ex);
       }
     }
+    public void save() {
+      FileChooser chooser = new FileChooser();  // create file chooser object
+      chooser.setInitialDirectory(new File("."));
+      chooser.setInitialFileName("document");
+      chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text File", ".txt"));
+      File save = chooser.showSaveDialog(stage);
+      if (save != null) {
+        try{
+          PrintWriter pw = new PrintWriter(save);
+          for (String line : taFileView.getText().split("\n")) {
+            pw.println(line);
+          }
+          pw.flush();
+          pw.close();
+          DispAlert.alertInfo("File saved successfully to "+save.getAbsolutePath());
+        }
+        catch (FileNotFoundException ex) {
+          DispAlert.alertException(ex);
+        }
+      }
+    }
     public void sendFile(ArrayList<String> fileData) {
       try {
         oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(), "FILE", fileData), secKey));
         Platform.runLater(new Runnable() {
           public void run() {
+            btnSave.setDisable(false);
             fileEditUser.setText("Edited by: You");
           }
         }); 
@@ -364,6 +389,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void processFileData(Transaction t) {
       Platform.runLater(new Runnable() {public void run() {
+        btnSave.setDisable(false);
         taFileView.setText("");
         fileEditUser.setText("Edited by: " + t.getClientName());
         ArrayList<String> fileData = t.getData();

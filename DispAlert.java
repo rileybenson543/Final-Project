@@ -20,4 +20,13 @@ public class DispAlert {
       }
     });
   }
+  public static void alertInfo(String message) {
+    Platform.runLater(new Runnable() {
+      public void run() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setContentText(message);
+        alert.showAndWait();
+      }
+    });
+  }
 }
