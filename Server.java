@@ -7,15 +7,12 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
-import java.nio.charset.StandardCharsets;
 
 import java.net.*;
 import java.util.ArrayList;
 import java.io.*;
 import java.security.*;
 
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.SecretKey;
 
 
@@ -81,6 +78,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
     switch(btn.getText()) {
         case "Receive Connections":
+          generateKey();
           serverHandler = new ServerHandler();
           serverHandler.start();
           btnReceive.setText("Disconnect");
@@ -119,12 +117,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   class ServerHandler extends Thread {
 
     private ServerSocket ss;
-    
-    // private KeyData keyData;
-
-    private SecretKeySpec secretKey;
-    private IvParameterSpec initVector;
-    
+        
     private ArrayList<SocketHandler> activeClients = new ArrayList<SocketHandler>();
     
     private volatile Boolean active = true;

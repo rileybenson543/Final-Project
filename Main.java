@@ -20,10 +20,6 @@ import java.security.*;
 import javax.crypto.SecretKey;
 
 
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
-
 
 public class Main extends Application implements EventHandler<ActionEvent> {
 
@@ -143,6 +139,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
    }
   private void connect() {
+    generateKey();
     String name = nameInput.getText();
     if (!name.isEmpty()) {
       try {
