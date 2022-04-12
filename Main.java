@@ -13,6 +13,7 @@ import javafx.stage.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.io.*;
 
@@ -46,6 +47,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
 
+  private TabPane tabPane = new TabPane();
+
+
   private FlowPane fpChat = new FlowPane(8,8);
   private FlowPane fpMain = new FlowPane(8,8);
   private FlowPane fpFileView = new FlowPane(8,8);
@@ -59,7 +63,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
 
-  
+  HashMap<String,Tab> tabs;
+  // ArrayList<Tab> tabs;
+
   Socket socket;
 
   ObjectInputStream ois;
@@ -75,7 +81,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   
   Crypto crypto;
   
-
   //ServerHandler serverHandler;
 
   public static void main(String[] args) {
@@ -96,6 +101,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSave.setOnAction(this);
     btnSave.setDisable(true);
 
+    // Main tab creation
+    Tab tMain = new Tab("Main");
+    tMain.setContent(new TextArea());
+    tMain.setClosable(false);
+    
+    tabPane.getTabs().addAll(tMain);
+    tabs = new HashMap<String,Tab>();
+    tabs.put("Main",tMain);
+    
+
+
+    //t1.setClosable(arg0);
+
     tField.setPrefColumnCount(25);
 
     comboBox.setDisable(true);
@@ -103,7 +121,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-    fpChat.getChildren().addAll(taChat,comboBox,tField,btnSend);
+    fpChat.getChildren().addAll(tabPane,comboBox,tField,btnSend);
     fpFileView.getChildren().addAll(taFileView,btnSave,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
     root.getChildren().addAll(fp1,fpMain,taClients);
@@ -158,8 +176,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
       }
     }
-
-   }
+  }
   private void connect() {
     generateKey();
     String name = nameInput.getText();
@@ -168,7 +185,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         socket = new Socket("localhost",12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
-        taChat.appendText("connected to "+socket.getInetAddress()+":"+socket.getPort()+"\n");
+        writeText("connected to "+socket.getInetAddress()+":"+socket.getPort(),"Main");
         doKeyExchange();
         
         messageHandler = new IncomingMessageHandler();
@@ -181,7 +198,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
     else {
-      taChat.appendText("Please enter a name and try again\n");
+      writeText("Please enter a name and try again","Main");
     }
   }
   private void disconnect() {
@@ -253,14 +270,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      }   
   }//end doKeyExchange()
 
-  public static void writeText(String s) {
-    taChat.appendText(s+"\n");
+  public void writeText(String s, String tabName) {
+    if (!tabs.containsKey(tabName)) {
+      Tab t = new Tab(tabName);
+      t.setContent(new TextArea());
+      t.setClosable(false);
+      tabs.put(tabName,t);
+      Platform.runLater(new Runnable() {
+        public void run() {
+          tabPane.getTabs().add(t);
+        }
+      });
+    }
+    TextArea ta = (TextArea)tabs.get(tabName).getContent();
+    ta.appendText(s+"\n");
+    // taChat.appendText(s+"\n");
   }
 
   private void processActiveClients(ArrayList<String> activeClientsStrings) {
     activeClients = activeClientsStrings;
     taClients.setText("");
-    taClients.appendText("Me\n");
+    taClients.appendText("You\n");
     for (String s : activeClients) {
       if (!s.equals(nameInput.getText())) {
         taClients.appendText(s+"\n");
@@ -289,10 +319,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
             switch (t.getCommand()) {
               case "BROADCAST":
-                taChat.appendText("<" + t.getClientName()+"> " + t.getMessage()+"\n");
+                writeText("<" + t.getClientName()+"> " + t.getMessage(),"Main");
                 break;
               case "DIRECT":
-                taChat.appendText("Direct - <" + t.getClientName()+"> " + t.getMessage()+"\n");
+                writeText("<" + t.getClientName()+"> " + t.getMessage(),t.getClientName());
                 break;
               case "CLIENTS":
                 processActiveClients(t.getData());
@@ -301,7 +331,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 fileEditHandler.processFileData(t);
                 break;
               case "NAME_IN_USE":
-                taChat.appendText(t.getMessage()+" is in use, please try another name\n");
+                writeText(t.getMessage()+" is in use, please try another name","Main");
                 Platform.runLater(new Runnable() {public void run() {disconnect();}});
                 break;
             }
