@@ -19,6 +19,8 @@ import java.io.*;
 import java.security.*;
 import javax.crypto.SecretKey;
 
+import java.time.*;
+
 
 
 public class Main extends Application implements EventHandler<ActionEvent> {
@@ -353,7 +355,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     public void save() {
       FileChooser chooser = new FileChooser();  // create file chooser object
       chooser.setInitialDirectory(new File("."));
-      chooser.setInitialFileName("document");
+      String date = LocalDate.now().toString();
+      chooser.setInitialFileName("document-"+date);
       chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text File", ".txt"));
       File save = chooser.showSaveDialog(stage);
       if (save != null) {
