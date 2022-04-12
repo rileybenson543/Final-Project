@@ -31,7 +31,7 @@ public class Crypto {
          KeyGenerator AESgen = KeyGenerator.getInstance("AES");
          AESgen.init(128);
          secKey = AESgen.generateKey();
-         System.out.print(secKey);
+         // System.out.print(secKey);
       
       }catch(NoSuchAlgorithmException nsae) {
          nsae.printStackTrace();
@@ -103,7 +103,7 @@ public class Crypto {
       
       cipher.init(Cipher.ENCRYPT_MODE, _pubKey);
       byte[] encryptedKey = cipher.doFinal(secKey.getEncoded());
-      System.out.print(secKey.getEncoded());
+      //System.out.print(secKey.getEncoded());
       return encryptedKey;
       
    }

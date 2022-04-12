@@ -26,11 +26,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Stage stage;
   private Scene scene;
 
-  private VBox root = new VBox(8);
+  private VBox root;
 
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
-  private Button btnGenerate = new Button("Generate Key");
   private Button btnUpload = new Button("Upload File");
 
   private static TextArea taChat = new TextArea();
@@ -48,7 +47,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private FlowPane fpMain = new FlowPane(8,8);
   private FlowPane fpFileView = new FlowPane(8,8);
   private FlowPane fp1 = new FlowPane(8,8);
-  private FlowPane fp2 = new FlowPane(8,8);
+
+  private MenuBar mBar = new MenuBar();
+  private Menu menu = new Menu("Options");
+  private MenuItem miGenKey = new MenuItem("Generate a Key");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   ObservableList<String> activeClientsComboList;
@@ -78,10 +80,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public void start(Stage _stage) throws Exception {
     stage = _stage;
     stage.setTitle("Client");
+    root = new VBox(8,mBar);
+
+    mBar.getMenus().add(menu);
+    menu.getItems().addAll(miGenKey);
     
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
-    btnGenerate.setOnAction(this);
+    miGenKey.setOnAction(this);
     btnUpload.setOnAction(this);
 
     tField.setPrefColumnCount(25);
@@ -91,11 +97,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-    fp2.getChildren().addAll(btnGenerate);
     fpChat.getChildren().addAll(taChat,comboBox,tField,btnSend);
     fpFileView.getChildren().addAll(taFileView,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
-    root.getChildren().addAll(fp1,fp2,fpMain,taClients);
+    root.getChildren().addAll(fp1,fpMain,taClients);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -117,26 +122,36 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   
   public void handle(ActionEvent evt) {
 
-    Button btn = (Button)evt.getSource();
-    
+    if (evt.getSource() instanceof Button) {
+      Button btn = (Button)evt.getSource();
 
-    switch(btn.getText()) {
-        case "Connect":
-          connect();
-          break;
-        case "Disconnect":
-          disconnect();
-          break;
-        case "Send":
-          send(tField.getText());
-          break;
-        case "Generate Key":
+      switch(btn.getText()) {
+          case "Connect":
+            connect();
+            break;
+          case "Disconnect":
+            disconnect();
+            break;
+          case "Send":
+            send(tField.getText());
+            break;
+          case "Generate Key":
+            generateKey();
+            break;
+          case "Upload File":
+            fileEditHandler.upload();
+            break;
+        }
+    }
+    if (evt.getSource() instanceof MenuItem) {
+      MenuItem mi = (MenuItem)evt.getSource();
+      switch(mi.getText()) {
+        case "Generate a Key":
           generateKey();
           break;
-        case "Upload File":
-          fileEditHandler.upload();
-          break;
       }
+    }
+
    }
   private void connect() {
     generateKey();
@@ -197,7 +212,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  
   
   //generateKey()
   //creates Crypto object to insantiate keys
