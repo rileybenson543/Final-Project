@@ -5,7 +5,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 
-//@version 2.0.1
+//@version 2.2.1
 
 public class Crypto {
    
