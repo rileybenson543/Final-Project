@@ -218,6 +218,24 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           }
         }
     }
+    public void broadcastTyping(String sender,boolean typing) { // for broadcasting active typing
+      for (SocketHandler s : activeClients) {
+        if(!s.getClientName().equals(sender)) {
+            ObjectOutputStream oos = s.getOutputStream();
+            
+            try {
+              if (typing) {
+                oos.writeObject(crypto.encrypt(new Transaction(sender,"TYPING"), s.secKey));
+              }
+              else if (!typing) {
+                oos.writeObject(crypto.encrypt(new Transaction(sender,"NOT_TYPING"), s.secKey));
+              }
+            }
+            
+            catch (Exception ex) {DispAlert.alertException(ex);} 
+        }
+      }
+    }
     public void sendDirect(String sender,String recipient,String message) {
       boolean found = false;
       for (SocketHandler s : activeClients) {
@@ -226,6 +244,32 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           ObjectOutputStream oos = s.getOutputStream();
           try {
             oos.writeObject(crypto.encrypt(new Transaction(sender,"DIRECT",message,recipient), s.secKey));
+          }
+          catch (IOException ex) {
+            DispAlert.alertException(ex);
+          }catch (Exception e) {
+            e.printStackTrace();
+          }
+
+        }
+      }
+      if (!found) {
+        writeText("Direct message request to unkown recipient: "+recipient);
+      }
+    }
+    public void sendDirectTyping(String sender, String recipient, boolean typing) {
+      boolean found = false;
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(recipient)) {
+          found = true;
+          ObjectOutputStream oos = s.getOutputStream();
+          try {
+            if (typing) {
+              oos.writeObject(crypto.encrypt(new Transaction(sender,"TYPING",recipient), s.secKey));
+            }
+            else {
+              oos.writeObject(crypto.encrypt(new Transaction(sender,"NOT_TYPING",recipient), s.secKey));
+            }
           }
           catch (IOException ex) {
             DispAlert.alertException(ex);
@@ -290,6 +334,22 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   break;
                 case "FILE":
                   fileEditHandler.receiveFile(t);
+                  break;
+                case "TYPING":
+                  if (t.getRecipient().equals("Everyone")) {
+                    broadcastTyping(t.getClientName(),true);
+                  }
+                  else {
+                    sendDirectTyping(t.getClientName(),t.getRecipient(),true);
+                  }
+                  break;
+                case "NOT_TYPING":
+                  if (t.getRecipient().equals("Everyone")) {
+                    broadcastTyping(t.getClientName(),false);
+                  }
+                  else {
+                    sendDirectTyping(t.getClientName(),t.getRecipient(),false);
+                  }
                   break;
               }
             }

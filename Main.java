@@ -35,8 +35,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnSend = new Button("Send");
   private Button btnUpload = new Button("Upload File");
   private Button btnSave = new Button("Save File");
-
-  private static TextArea taChat = new TextArea();
   
   private TextArea taClients = new TextArea();
   private TextArea taFileView = new TextArea("No File Available");
@@ -46,6 +44,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
+  private Label typingLbl = new Label("testing");
 
   private TabPane tabPane = new TabPane();
 
@@ -72,6 +71,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   ObjectOutputStream oos;
   IncomingMessageHandler messageHandler;
   FileEditHandler fileEditHandler;
+  ChatFieldHandler chatHandler;
 
   //keys
   private PublicKey pubKey;
@@ -80,6 +80,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private SecretKey secKey;
   
   Crypto crypto;
+
+  String name;
   
   //ServerHandler serverHandler;
 
@@ -111,7 +113,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tabs.put("Main",tMain);
     
 
-
     //t1.setClosable(arg0);
 
     tField.setPrefColumnCount(25);
@@ -121,7 +122,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
 
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-    fpChat.getChildren().addAll(tabPane,comboBox,tField,btnSend);
+    fpChat.getChildren().addAll(tabPane,typingLbl,comboBox,tField,btnSend);
     fpFileView.getChildren().addAll(taFileView,btnSave,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
     root.getChildren().addAll(fp1,fpMain,taClients);
@@ -179,7 +180,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }
   private void connect() {
     generateKey();
-    String name = nameInput.getText();
+    name = nameInput.getText();
     if (!name.isEmpty()) {
       try {
         socket = new Socket("localhost",12345);
@@ -190,6 +191,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
+        chatHandler = new ChatFieldHandler();
+        chatHandler.start();
         btnConnect.setText("Disconnect");
         comboBox.setDisable(false);
       }
@@ -334,6 +337,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 writeText(t.getMessage()+" is in use, please try another name","Main");
                 Platform.runLater(new Runnable() {public void run() {disconnect();}});
                 break;
+              case "TYPING":
+                chatHandler.setActiveTyping(t.getClientName());
+                break;
+              case "NOT_TYPING":
+                chatHandler.setInactiveTyping();
+                break;
             }
         }
         catch (SocketException ex) {
@@ -431,7 +440,52 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
         prevFileData = taFileView.getText();
       }});
-
+    }
+  }
+  class ChatFieldHandler extends Thread {
+    private boolean typing = false;
+    public void run() {
+      while (true) {
+        if (tField.isFocused() && typing == false) {
+          isTyping();
+        }
+        else if (tField.isFocused() == false && typing == true) {
+          isNotTyping();
+        }
+        try {sleep(500);}catch(InterruptedException ie) {}
+      }
+    }
+    private void isTyping() {
+      try {
+        typing = true;
+        oos.writeObject(crypto.encrypt(new Transaction(name,"TYPING","",comboBox.getValue().toString()),secKey));
+      }
+      catch (Exception ex) {
+        DispAlert.alertException(ex);
+      }
+    }
+    private void isNotTyping() {
+      try {
+        typing = false;
+        oos.writeObject(crypto.encrypt(new Transaction(name,"NOT_TYPING","",comboBox.getValue().toString()),secKey));
+      }
+      catch (Exception ex) {
+        DispAlert.alertException(ex);
+      }
+    }
+    public void setActiveTyping(String clientName) {
+      Platform.runLater(new Runnable() {
+        public void run() {
+          typingLbl.setText(clientName + " is typing ...");
+        }
+      });
+    }
+    public void setInactiveTyping() {
+      Platform.runLater(new Runnable() {
+        public void run() {
+          typingLbl.setText("");
+        }
+      });
     }
   }    
 }	

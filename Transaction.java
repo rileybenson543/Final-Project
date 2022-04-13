@@ -15,6 +15,10 @@ public class Transaction implements Serializable {
     private String message;
     private ArrayList<String> data;
     // init vector
+    public Transaction(String _clientName, String _command) {
+        clientName = _clientName;
+        command = _command;
+    }
     public Transaction(String _clientName, String _command, String _message, String _recipient) { // for direct messages
         clientName = _clientName;
         command = _command;
@@ -31,8 +35,7 @@ public class Transaction implements Serializable {
         command = _command;
         data = _data;
     }
-    
-    public Transaction(String _clientName) {
+    public Transaction(String _clientName) { // sending name
       clientName = _clientName;
     }
     
@@ -64,5 +67,4 @@ public class Transaction implements Serializable {
         oi = new ObjectInputStream(bis);
         return (Transaction)oi.readObject(); 
     }
-
 }
