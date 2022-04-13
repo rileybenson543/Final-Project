@@ -8,12 +8,16 @@ import javafx.geometry.Pos;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.Text;
 import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 import java.io.*;
 
@@ -36,7 +40,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnUpload = new Button("Upload File");
   private Button btnSave = new Button("Save File");
   
-  private TextArea taClients = new TextArea();
   private TextArea taFileView = new TextArea("No File Available");
 
   private TextField tField = new TextField();
@@ -44,7 +47,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
-  private Label typingLbl = new Label("testing");
+  private Label typingLbl = new Label("");
 
   private TabPane tabPane = new TabPane();
 
@@ -52,6 +55,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private FlowPane fpChat = new FlowPane(8,8);
   private FlowPane fpMain = new FlowPane(8,8);
   private FlowPane fpFileView = new FlowPane(8,8);
+  private FlowPane fpActiveClients = new FlowPane(8,8);
   private FlowPane fp1 = new FlowPane(8,8);
 
   private MenuBar mBar = new MenuBar();
@@ -59,6 +63,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private MenuItem miGenKey = new MenuItem("Generate a Key");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
+  private StackPane activeClientGraphic = new StackPane();
+  private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
 
@@ -66,6 +72,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   // ArrayList<Tab> tabs;
 
   Socket socket;
+
+  Object mapLock = new Object();
 
   ObjectInputStream ois;
   ObjectOutputStream oos;
@@ -121,11 +129,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
 
+    activeClientGraphic.getChildren().addAll(new Circle(20, Color.BLUE),new Text(""));
+
     fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
     fpChat.getChildren().addAll(tabPane,typingLbl,comboBox,tField,btnSend);
     fpFileView.getChildren().addAll(taFileView,btnSave,btnUpload,fileEditUser);
     fpMain.getChildren().addAll(fpChat,fpFileView);
-    root.getChildren().addAll(fp1,fpMain,taClients);
+    root.getChildren().addAll(fp1,fpMain,fpActiveClients);
+
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -207,11 +218,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void disconnect() {
     try {
       if (socket != null) {socket.close();}
-      btnConnect.setText("Connect");
-      taClients.setText("Not Connected");
-      fileEditUser.setText("");
-      comboBox.setItems(null);
-      comboBox.setDisable(true);
+      Platform.runLater(new Runnable() {
+        public void run() {
+          btnConnect.setText("Connect");
+          fileEditUser.setText("");
+          comboBox.setItems(null);
+          comboBox.setDisable(true);
+          fpActiveClients.getChildren().clear();
+        }
+      });
+
     }
     catch (IOException ex) {
       DispAlert.alertException(ex);
@@ -292,22 +308,44 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private void processActiveClients(ArrayList<String> activeClientsStrings) {
     activeClients = activeClientsStrings;
-    taClients.setText("");
-    taClients.appendText("You\n");
     for (String s : activeClients) {
-      if (!s.equals(nameInput.getText())) {
-        taClients.appendText(s+"\n");
+      if (!clientGraphicsMap.containsKey(s)) {
+        Text t;
+        if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
+        else {t = new Text(s);}
+        t.setFill(Color.WHITE); // set text to white
+        clientGraphicsMap.put(s,new StackPane(new Circle(20,Color.BLUE), t)); // creates the client circle if
+                                                                                        // they are not already there
+        //Platform.runLater(new Runnable() {public void run() {fpActiveClients.getChildren().add(clientGraphicsMap.get(s));}});
       }
     }
+    ArrayList<String> remove = new ArrayList<String>();
+    for (String s : clientGraphicsMap.keySet()) { // iterate through the keys
+      if (!activeClients.contains(s)) { // removes clients from map that are 
+        remove.add(s);    // no longer active
+      }
+    }
+    for (String s : remove) {
+      clientGraphicsMap.remove(s);
+    }
     activeClients.add("Everyone");
-    activeClients.remove(nameInput.getText());
+    activeClients.remove(name);
     activeClientsComboList = FXCollections.observableArrayList(activeClients);
+
+
     Platform.runLater(new Runnable() {
       public void run() {
         comboBox.setItems(activeClientsComboList);
         comboBox.setValue("Everyone");
+        // for (Node n : fpActiveClients.getChildren()) {
+        //   fpActiveClients.getChildren().remove(n);
+        // }
+        // fpActiveClients.getChildren().set
+        //fpActiveClients.getChildren().removeAll();
+        fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
+
   }
 
   class IncomingMessageHandler extends Thread {
