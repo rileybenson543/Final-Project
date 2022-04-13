@@ -10,6 +10,7 @@ import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 import java.security.*;
 
@@ -218,6 +219,16 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           }
         }
     }
+    public void broadcast(HashMap<Integer,String> data, String sender) {
+      for (SocketHandler s : activeClients) {
+          if(!s.getClientName().equals(sender)) {
+              ObjectOutputStream oos = s.getOutputStream();
+
+              try {oos.writeObject(crypto.encrypt(new Transaction(sender,"FILE",data), s.secKey));}
+              catch (Exception ex) {DispAlert.alertException(ex);} 
+          }
+        }
+    }
     public void broadcastTyping(String sender,boolean typing) { // for broadcasting active typing
       for (SocketHandler s : activeClients) {
         if(!s.getClientName().equals(sender)) {
@@ -416,12 +427,14 @@ public class Server extends Application implements EventHandler<ActionEvent> {
          return pubKey;
       }
       class ServerFileEditHandler extends Thread {
+        ArrayList<String> prevFile = new ArrayList<String>(); 
         public void run() {
     
         }
         public void receiveFile(Transaction t) {
           writeText("File from " + t.getClientName());
-          broadcast(t.getData(),t.getClientName());
+          HashMap<Integer,String> fileChange = t.getFileData();
+          broadcast(fileChange,t.getClientName());
         }
       }
     }

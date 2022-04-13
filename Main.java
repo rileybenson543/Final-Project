@@ -404,22 +404,38 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
   }
   class FileEditHandler extends Thread {
-    private String prevFileData;
+    
     public void run() {
       while (true) {
-        prevFileData = taFileView.getText();
+        HashMap<Integer,String> prevFileData = pollTextArea();
         try{sleep(500);}catch(InterruptedException ex) {}  // slow down the text area polling
         try {
-          if (!taFileView.getText().equals(prevFileData)) {
-            ArrayList<String> fileData = new ArrayList<String>();
-            Collections.addAll(fileData, taFileView.getText().split("\n"));
-            sendFile(fileData);
+          HashMap<Integer,String> currFileData = pollTextArea();
+          HashMap<Integer,String> dataDelta = new HashMap<Integer,String>();
+          if (!currFileData.equals(prevFileData)) {
+            for (int i : prevFileData.keySet()) {
+              if (!currFileData.get(i).equals(prevFileData.get(i))) {
+                dataDelta.put(i, currFileData.get(i));
+                System.out.println(currFileData.get(i));
+              }
+            }
+            sendFile(dataDelta);
           }
         }
         catch (Exception ex) {
           ex.printStackTrace();
         }
       }
+    }
+    private HashMap<Integer,String> pollTextArea() {
+      HashMap<Integer,String> fileData = new HashMap<Integer,String>();
+      int i = 0;
+      fileData.clear();
+      for (String s : taFileView.getText().split("\n")) {
+        fileData.put(i, s);
+        i++;
+      }
+      return fileData;
     }
     public void upload() {
       FileChooser chooser = new FileChooser();  // create file chooser object
@@ -434,7 +450,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           fileData.add(line);
           taFileView.appendText(line+"\n");
         }
-          sendFile(fileData);
+          // sendFile(fileData);
       }
       catch (FileNotFoundException ex) {
         DispAlert.alertException(ex);
@@ -462,7 +478,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
-    public void sendFile(ArrayList<String> fileData) {
+    public void sendFile(HashMap<Integer,String> fileData) {
       try {
         oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(), "FILE", fileData), secKey));
         Platform.runLater(new Runnable() {
@@ -481,13 +497,21 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     public void processFileData(Transaction t) {
       Platform.runLater(new Runnable() {public void run() {
         miSave.setDisable(false);
-        taFileView.setText("");
+        // taFileView.setText("");
         fileEditUser.setText("Edited by: " + t.getClientName());
-        ArrayList<String> fileData = t.getData();
-        for (String s : fileData) {
-          taFileView.appendText(s+"\n");
+        HashMap<Integer,String> fileData = t.getFileData();
+        String[] currEditor = taFileView.getText().split("\n");
+        for (int i : fileData.keySet()) {
+          int begin = 0;
+          for (int j = 0; j < i; j++) {
+            begin += currEditor[j].length();
+          }
+          // end is next new line
+          int end = begin + currEditor[i].length();
+          taFileView.deleteText(begin, end);
+          taFileView.replaceText(begin, end, fileData.get(i));
         }
-        prevFileData = taFileView.getText();
+        // prevFileData = taFileView.getText();
       }});
     }
   }

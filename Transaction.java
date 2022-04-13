@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 
 public class Transaction implements Serializable {
@@ -14,6 +15,7 @@ public class Transaction implements Serializable {
     private String command;
     private String message;
     private ArrayList<String> data;
+    private HashMap<Integer,String> fileData;
     // init vector
     public Transaction(String _clientName, String _command) {
         clientName = _clientName;
@@ -30,10 +32,15 @@ public class Transaction implements Serializable {
         command = _command;
         message = _message;
     }
-    public Transaction(String _clientName, String _command, ArrayList<String> _data) { // active client updates and file data
+    public Transaction(String _clientName, String _command, ArrayList<String> _data) { // active client updates
         clientName = _clientName;
         command = _command;
         data = _data;
+    }
+    public Transaction(String _clientName, String _command, HashMap<Integer,String> _fileData) { // file data
+        clientName = _clientName;
+        command = _command;
+        fileData = _fileData;
     }
     public Transaction(String _clientName) { // sending name
       clientName = _clientName;
@@ -53,6 +60,9 @@ public class Transaction implements Serializable {
     }
     public ArrayList<String> getData() {
         return data;
+    }
+    public HashMap<Integer,String> getFileData() {
+        return fileData;
     }
     public byte[] getByteArray() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
