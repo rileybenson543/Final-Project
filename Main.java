@@ -1,4 +1,4 @@
-//@ver 2.0.1
+//@ver 2.2.1
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -8,16 +8,13 @@ import javafx.geometry.Pos;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.text.Text;
 import javafx.stage.*;
+import javafx.geometry.Side;
 
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 import java.io.*;
 
@@ -34,12 +31,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Scene scene;
 
   private VBox root;
+  private BorderPane bPane = new BorderPane();
 
   private Button btnConnect = new Button("Connect");
   private Button btnSend = new Button("Send");
   private Button btnUpload = new Button("Upload File");
   private Button btnSave = new Button("Save File");
   
+  private TextArea taClients = new TextArea();
   private TextArea taFileView = new TextArea("No File Available");
 
   private TextField tField = new TextField();
@@ -47,7 +46,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
-  private Label typingLbl = new Label("");
+  private Label typingLbl = new Label("testing");
 
   private TabPane tabPane = new TabPane();
 
@@ -55,16 +54,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private FlowPane fpChat = new FlowPane(8,8);
   private FlowPane fpMain = new FlowPane(8,8);
   private FlowPane fpFileView = new FlowPane(8,8);
-  private FlowPane fpActiveClients = new FlowPane(8,8);
-  private FlowPane fp1 = new FlowPane(8,8);
+  private FlowPane fpRegister = new FlowPane(8,8);
 
   private MenuBar mBar = new MenuBar();
   private Menu menu = new Menu("Options");
   private MenuItem miGenKey = new MenuItem("Generate a Key");
+  private Menu mnuFile = new Menu("File");
+  private MenuItem miSave = new MenuItem("Save File");
+  private MenuItem miUpload = new MenuItem("Upload File");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
-  private StackPane activeClientGraphic = new StackPane();
-  private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
 
@@ -72,8 +71,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   // ArrayList<Tab> tabs;
 
   Socket socket;
-
-  Object mapLock = new Object();
 
   ObjectInputStream ois;
   ObjectOutputStream oos;
@@ -86,7 +83,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private PrivateKey privKey;
   private PublicKey serverPubKey;
   private SecretKey secKey;
-  
   Crypto crypto;
 
   String name;
@@ -101,16 +97,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     stage.setTitle("Client");
     root = new VBox(8,mBar);
 
-    mBar.getMenus().add(menu);
+    //menu items
+    mBar.getMenus().addAll(mnuFile, menu);
     menu.getItems().addAll(miGenKey);
+    mnuFile.getItems().addAll(miUpload, miSave);
+    miSave.setOnAction(this);
+    miUpload.setOnAction(this);
     
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
     miGenKey.setOnAction(this);
-    btnUpload.setOnAction(this);
-    btnSave.setOnAction(this);
-    btnSave.setDisable(true);
+    
 
+   
+   
     // Main tab creation
     Tab tMain = new Tab("Main");
     tMain.setContent(new TextArea());
@@ -119,25 +119,37 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tabPane.getTabs().addAll(tMain);
     tabs = new HashMap<String,Tab>();
     tabs.put("Main",tMain);
+    tabPane.setSide(Side.LEFT);
+
+    
+    
+    //BorderPane Format
+    bPane.setTop(fpRegister);
+    bPane.setLeft(tabPane);
+    bPane.setCenter(taFileView);
+    bPane.setBottom(fpChat);
+    bPane.setRight(taClients);
+    
+    
+    //TabPane
+    tabPane.setPrefHeight(800);
+    tabPane.setPrefWidth(200);
+    taClients.setPrefWidth(200);
+    fpChat.setAlignment(Pos.CENTER);
+    
     
 
     //t1.setClosable(arg0);
-
     tField.setPrefColumnCount(25);
 
     comboBox.setDisable(true);
 
+    //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
-
-    activeClientGraphic.getChildren().addAll(new Circle(20, Color.BLUE),new Text(""));
-
-    fp1.getChildren().addAll(btnConnect,nameLbl,nameInput);
-    fpChat.getChildren().addAll(tabPane,typingLbl,comboBox,tField,btnSend);
-    fpFileView.getChildren().addAll(taFileView,btnSave,btnUpload,fileEditUser);
-    fpMain.getChildren().addAll(fpChat,fpFileView);
-    root.getChildren().addAll(fp1,fpMain,fpActiveClients);
-
-
+    fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput);
+    fpChat.getChildren().addAll(typingLbl,comboBox,tField,btnSend);
+    root.getChildren().addAll(bPane);
+     
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
           disconnect();   
@@ -173,11 +185,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           case "Generate Key":
             generateKey();
             break;
-          case "Upload File":
-            fileEditHandler.upload();
-            break;
-          case "Save File":
-            fileEditHandler.save();
+
         }
     }
     if (evt.getSource() instanceof MenuItem) {
@@ -186,6 +194,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         case "Generate a Key":
           generateKey();
           break;
+        case "Upload File":
+          fileEditHandler.upload();
+          break;
+       case "Save File":
+          fileEditHandler.save();
       }
     }
   }
@@ -218,16 +231,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void disconnect() {
     try {
       if (socket != null) {socket.close();}
-      Platform.runLater(new Runnable() {
-        public void run() {
-          btnConnect.setText("Connect");
-          fileEditUser.setText("");
-          comboBox.setItems(null);
-          comboBox.setDisable(true);
-          fpActiveClients.getChildren().clear();
-        }
-      });
-
+      btnConnect.setText("Connect");
+      taClients.setText("Not Connected");
+      fileEditUser.setText("");
+      comboBox.setItems(null);
+      comboBox.setDisable(true);
     }
     catch (IOException ex) {
       DispAlert.alertException(ex);
@@ -236,8 +244,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
-      // generate new init vector
-
       String comboBoxSelection = comboBox.getValue().toString();
 
       if (comboBoxSelection.equals("Everyone")) {
@@ -246,9 +252,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       else {
         oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection), secKey));
       }
-
-      // need to send init vector as well
-
       oos.flush();
     }
     catch (Exception ex) {
@@ -308,44 +311,22 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private void processActiveClients(ArrayList<String> activeClientsStrings) {
     activeClients = activeClientsStrings;
+    taClients.setText("");
+    taClients.appendText("You\n");
     for (String s : activeClients) {
-      if (!clientGraphicsMap.containsKey(s)) {
-        Text t;
-        if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
-        else {t = new Text(s);}
-        t.setFill(Color.WHITE); // set text to white
-        clientGraphicsMap.put(s,new StackPane(new Circle(20,Color.BLUE), t)); // creates the client circle if
-                                                                                        // they are not already there
-        //Platform.runLater(new Runnable() {public void run() {fpActiveClients.getChildren().add(clientGraphicsMap.get(s));}});
+      if (!s.equals(nameInput.getText())) {
+        taClients.appendText(s+"\n");
       }
-    }
-    ArrayList<String> remove = new ArrayList<String>();
-    for (String s : clientGraphicsMap.keySet()) { // iterate through the keys
-      if (!activeClients.contains(s)) { // removes clients from map that are 
-        remove.add(s);    // no longer active
-      }
-    }
-    for (String s : remove) {
-      clientGraphicsMap.remove(s);
     }
     activeClients.add("Everyone");
-    activeClients.remove(name);
+    activeClients.remove(nameInput.getText());
     activeClientsComboList = FXCollections.observableArrayList(activeClients);
-
-
     Platform.runLater(new Runnable() {
       public void run() {
         comboBox.setItems(activeClientsComboList);
         comboBox.setValue("Everyone");
-        // for (Node n : fpActiveClients.getChildren()) {
-        //   fpActiveClients.getChildren().remove(n);
-        // }
-        // fpActiveClients.getChildren().set
-        //fpActiveClients.getChildren().removeAll();
-        fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
-
   }
 
   class IncomingMessageHandler extends Thread {
@@ -456,7 +437,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(), "FILE", fileData), secKey));
         Platform.runLater(new Runnable() {
           public void run() {
-            btnSave.setDisable(false);
+            miSave.setDisable(false);
             fileEditUser.setText("Edited by: You");
           }
         }); 
@@ -469,7 +450,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void processFileData(Transaction t) {
       Platform.runLater(new Runnable() {public void run() {
-        btnSave.setDisable(false);
+        miSave.setDisable(false);
         taFileView.setText("");
         fileEditUser.setText("Edited by: " + t.getClientName());
         ArrayList<String> fileData = t.getData();
