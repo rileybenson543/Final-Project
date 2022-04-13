@@ -9,7 +9,8 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.geometry.Side;
@@ -323,7 +324,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
         else {t = new Text(s);}
         t.setFill(Color.WHITE); // set text to white
-        clientGraphicsMap.put(s,new StackPane(new Circle(35,Color.BLUE), t)); // creates the client circle if
+        t.setFont(Font.font("Verdana",20));
+        clientGraphicsMap.put(s,new StackPane(new Rectangle(250, 35, Color.GREY), t)); // creates the client circle if
                                                                                         // they are not already there
         //Platform.runLater(new Runnable() {public void run() {fpActiveClients.getChildren().add(clientGraphicsMap.get(s));}});
       }
