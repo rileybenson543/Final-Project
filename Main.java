@@ -404,11 +404,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
   }
   class FileEditHandler extends Thread {
-    
+    HashMap<Integer,String> prevFileData;
     public void run() {
       while (true) {
-        HashMap<Integer,String> prevFileData = pollTextArea();
-        try{sleep(500);}catch(InterruptedException ex) {}  // slow down the text area polling
+        prevFileData = pollTextArea();
+        try{sleep(250);}catch(InterruptedException ex) {}  // slow down the text area polling
         try {
           HashMap<Integer,String> currFileData = pollTextArea();
           HashMap<Integer,String> dataDelta = new HashMap<Integer,String>();
@@ -495,23 +495,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
     public void processFileData(Transaction t) {
+      HashMap<Integer,String> fileDataIn = t.getFileData();
+      HashMap<Integer,String> fileDataCurr = new HashMap<Integer,String>();
+      // String[] currEditor = taFileView.getText().split("\n");
+      int i = 0;
+      for (String s : taFileView.getText().split("\n")) {
+        fileDataCurr.put(i,s);
+        i++;
+      }
+      for (int j : fileDataIn.keySet()) {
+        if (fileDataCurr.containsKey(j)) {
+          fileDataCurr.replace(j, fileDataIn.get(j));
+        }
+        else {
+          fileDataCurr.put(j,fileDataIn.get(j));
+        }    
+      }
+      String fileString = "";
+      for (String s : fileDataCurr.values()) {
+        fileString = fileString + s + "\n";
+      }
+      final String fString = fileString;
       Platform.runLater(new Runnable() {public void run() {
         miSave.setDisable(false);
         // taFileView.setText("");
-        fileEditUser.setText("Edited by: " + t.getClientName());
-        HashMap<Integer,String> fileData = t.getFileData();
-        String[] currEditor = taFileView.getText().split("\n");
-        for (int i : fileData.keySet()) {
-          int begin = 0;
-          for (int j = 0; j < i; j++) {
-            begin += currEditor[j].length();
-          }
-          // end is next new line
-          int end = begin + currEditor[i].length();
-          taFileView.deleteText(begin, end);
-          taFileView.replaceText(begin, end, fileData.get(i));
-        }
-        // prevFileData = taFileView.getText();
+        fileEditUser.setText("Edited by: " + t.getClientName());      
+        taFileView.setText(fString);  
+        prevFileData = fileDataCurr;
       }});
     }
   }
