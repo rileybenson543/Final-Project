@@ -47,7 +47,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
-  private Label typingLbl = new Label("testing");
+  private Label typingLbl = new Label("");
 
   private TabPane tabPane = new TabPane();
 
@@ -111,8 +111,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     miGenKey.setOnAction(this);
     
 
-   
-   
     // Main tab creation
     Tab tMain = new Tab("Main");
     tMain.setContent(new TextArea());
