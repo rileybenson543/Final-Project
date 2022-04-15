@@ -65,6 +65,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Menu mnuFile = new Menu("File");
   private MenuItem miSave = new MenuItem("Save File");
   private MenuItem miUpload = new MenuItem("Upload File");
+  private MenuItem miCreateGroup = new MenuItem("Create A Group");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
@@ -103,7 +104,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //menu items
     mBar.getMenus().addAll(mnuFile, menu);
-    menu.getItems().addAll(miGenKey);
+    menu.getItems().addAll(miGenKey,miCreateGroup);
     mnuFile.getItems().addAll(miUpload, miSave);
     miSave.setOnAction(this);
     miUpload.setOnAction(this);
@@ -111,6 +112,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
     miGenKey.setOnAction(this);
+    miCreateGroup.setOnAction(this);
     
 
     // Main tab creation
@@ -160,7 +162,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     });
 
     scene = new Scene(root, 1000, 600); 
-                                        
+
+    scene.getStylesheets().add
+      (Main.class.getResource("styles.css").toExternalForm());
+                          
     stage.setScene(scene);              
     stage.show();
     
