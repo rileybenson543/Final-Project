@@ -44,6 +44,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
 
   ServerHandler serverHandler;
+  Compression comp;
 
   public static void main(String[] args) {
     launch(args);
@@ -68,7 +69,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     stage.setScene(scene);              
     stage.show();
     
-
+    comp = new Compression();
   }
   
   public void handle(ActionEvent evt) {
@@ -189,7 +190,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
         try {
-          oos.writeObject(crypto.encrypt(new Transaction(s.getName(), "CLIENTS", activeClientsStrings), s.secKey));
+          oos.writeObject(crypto.encrypt(comp.compress(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray()), s.secKey));
         }
         catch (IOException ex) {
           DispAlert.alertException(ex);
@@ -203,7 +204,10 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           if(!s.equals(sender)) {
               ObjectOutputStream oos = s.getOutputStream();
 
-              try {oos.writeObject(crypto.encrypt(new Transaction(sender.getClientName(),"BROADCAST",message), s.secKey));}
+              try {
+                oos.writeObject(crypto.encrypt(
+                  comp.compress(
+                    new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray()), s.secKey));}
               catch (Exception ex) {DispAlert.alertException(ex);} 
           }
         }
@@ -213,7 +217,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           if(!s.getClientName().equals(sender)) {
               ObjectOutputStream oos = s.getOutputStream();
 
-              try {oos.writeObject(crypto.encrypt(new Transaction(sender,"FILE",data), s.secKey));}
+              try {oos.writeObject(crypto.encrypt(
+                comp.compress(new Transaction(sender,"FILE",data).getByteArray()), s.secKey));}
               catch (Exception ex) {DispAlert.alertException(ex);} 
           }
         }
@@ -225,10 +230,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             
             try {
               if (typing) {
-                oos.writeObject(crypto.encrypt(new Transaction(sender,"TYPING"), s.secKey));
+                oos.writeObject(crypto.encrypt(
+                  comp.compress(new Transaction(sender,"TYPING").getByteArray()), s.secKey));
               }
               else if (!typing) {
-                oos.writeObject(crypto.encrypt(new Transaction(sender,"NOT_TYPING"), s.secKey));
+                oos.writeObject(crypto.encrypt(
+                  comp.compress(new Transaction(sender,"NOT_TYPING").getByteArray()), s.secKey));
               }
             }
             
@@ -243,7 +250,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           found = true;
           ObjectOutputStream oos = s.getOutputStream();
           try {
-            oos.writeObject(crypto.encrypt(new Transaction(sender,"DIRECT",message,recipient), s.secKey));
+            oos.writeObject(crypto.encrypt(
+              comp.compress(new Transaction(sender,"DIRECT",message,recipient).getByteArray()), s.secKey));
           }
           catch (IOException ex) {
             DispAlert.alertException(ex);
@@ -265,10 +273,13 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           ObjectOutputStream oos = s.getOutputStream();
           try {
             if (typing) {
-              oos.writeObject(crypto.encrypt(new Transaction(sender,"TYPING",recipient), s.secKey));
+              oos.writeObject(crypto.encrypt(
+                comp.compress(
+                  new Transaction(sender,"TYPING",recipient).getByteArray()), s.secKey));
             }
             else {
-              oos.writeObject(crypto.encrypt(new Transaction(sender,"NOT_TYPING",recipient), s.secKey));
+              oos.writeObject(crypto.encrypt(
+                comp.compress(new Transaction(sender,"NOT_TYPING",recipient).getByteArray()), s.secKey));
             }
           }
           catch (IOException ex) {
@@ -323,7 +334,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             while (active) {
               byte[] incomingBytes = (byte[])ois.readObject();
               byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
-              Transaction t = Transaction.reconstructTransaction(decryptedBytes);
+              Transaction t = Transaction.reconstructTransaction(comp.decompress(decryptedBytes));
     
               switch (t.getCommand()) {
                 case "DIRECT":
@@ -355,7 +366,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             }
           }
           else {
-            oos.writeObject(crypto.encrypt(new Transaction(clientName, "NAME_IN_USE", clientName), secKey));
+            oos.writeObject(crypto.encrypt(
+              comp.compress(new Transaction(clientName, "NAME_IN_USE", clientName).getByteArray()), secKey));
           }
         }
         catch (EOFException ex) {
@@ -417,7 +429,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       }
       class ServerFileEditHandler extends Thread {
         public void run() {
-    
+          
         }
         public void receiveFile(Transaction t) {
           writeText("File from " + t.getClientName());

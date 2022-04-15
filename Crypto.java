@@ -67,6 +67,13 @@ public class Crypto {
       byte[] encryptedBytes = aesCipher.doFinal(data.getByteArray());
       return encryptedBytes;
    }
+   public byte[] encrypt(byte[] data, SecretKey secKey) throws Exception{ 
+      Cipher aesCipher = Cipher.getInstance("AES");
+      aesCipher.init(Cipher.ENCRYPT_MODE, secKey);
+      
+      byte[] encryptedBytes = aesCipher.doFinal(data);
+      return encryptedBytes;
+   }
    
    //decrypt
    //method to convert input ciphertext into plain text\

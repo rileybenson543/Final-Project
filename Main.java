@@ -7,6 +7,7 @@ import javafx.event.*;
 import javafx.geometry.Pos;
 import javafx.scene.*;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -26,6 +27,7 @@ import java.security.*;
 import javax.crypto.SecretKey;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 
 
 
@@ -79,6 +81,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   IncomingMessageHandler messageHandler;
   FileEditHandler fileEditHandler;
   ChatFieldHandler chatHandler;
+  Compression comp;
 
   //keys
   private PublicKey pubKey;
@@ -89,7 +92,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   String name;
   
-  //ServerHandler serverHandler;
 
   public static void main(String[] args) {
     launch(args);
@@ -138,7 +140,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
     
-    
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
@@ -165,6 +166,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     
     fileEditHandler =  new FileEditHandler();
     fileEditHandler.start();
+
+    comp = new Compression();
 
   }
   
@@ -251,11 +254,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       System.out.println("sending");
       String comboBoxSelection = comboBox.getValue().toString();
 
-      if (comboBoxSelection.equals("Everyone")) {
-        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(),"BROADCAST",tField.getText()), secKey));
+      if (comboBoxSelection.equals("Everyone")) { // over here
+        oos.writeObject(crypto.encrypt(
+          comp.compress(
+            new Transaction(
+              nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
       else {
-        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection), secKey));
+        oos.writeObject(crypto.encrypt(
+          comp.compress(
+            new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray()), secKey));
       }
       oos.flush();
     }
@@ -293,7 +301,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         
      }
      catch (Exception e) {
-        e.printStackTrace();
+        DispAlert.alertException(e);
      }   
   }//end doKeyExchange()
 
@@ -365,14 +373,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         try {
             byte[] incomingBytes = (byte[])ois.readObject();
             byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
-            Transaction t = Transaction.reconstructTransaction(decryptedBytes);
+            byte[] decompressed = comp.decompress(decryptedBytes);
+            Transaction t = Transaction.reconstructTransaction(decompressed);
 
             switch (t.getCommand()) {
               case "BROADCAST":
                 writeText("<" + t.getClientName()+"> " + t.getMessage(),"Main");
                 break;
               case "DIRECT":
-                writeText("<" + t.getClientName()+"> " + t.getMessage(),t.getClientName());
+                writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) .toString() +"> " + t.getMessage(),t.getClientName());
                 break;
               case "CLIENTS":
                 processActiveClients(t.getData());
@@ -462,7 +471,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void sendFile(ArrayList<String> fileData) {
       try {
-        oos.writeObject(crypto.encrypt(new Transaction(nameInput.getText(), "FILE", fileData), secKey));
+        oos.writeObject(
+          crypto.encrypt(  
+            comp.compress(new Transaction(nameInput.getText(), "FILE", fileData).getByteArray()), secKey));
         Platform.runLater(new Runnable() {
           public void run() {
             miSave.setDisable(false);
@@ -489,9 +500,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }});
     }
   }
-  class ChatFieldHandler extends Thread {
+  class ChatFieldHandler extends Thread implements EventHandler<KeyEvent>{
     private boolean typing = false;
+    public void handle(KeyEvent ke) {
+      // cooldown = 2000;
+    }
     public void run() {
+      tField.setOnKeyTyped(this);
       while (true) {
         if (tField.isFocused() && typing == false) {
           isTyping();
@@ -505,7 +520,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     private void isTyping() {
       try {
         typing = true;
-        oos.writeObject(crypto.encrypt(new Transaction(name,"TYPING","",comboBox.getValue().toString()),secKey));
+        oos.writeObject(crypto.encrypt(
+          comp.compress(  
+            new Transaction(name,"TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
@@ -514,7 +531,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     private void isNotTyping() {
       try {
         typing = false;
-        oos.writeObject(crypto.encrypt(new Transaction(name,"NOT_TYPING","",comboBox.getValue().toString()),secKey));
+        oos.writeObject(crypto.encrypt(
+          comp.compress(  
+            new Transaction(name,"NOT_TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
