@@ -369,7 +369,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
-
   }
 
   class IncomingMessageHandler extends Thread {
@@ -417,22 +416,21 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
   }
-  class FileEditHandler extends Thread {
+  class FileEditHandler extends Thread implements EventHandler<KeyEvent> {
     private String prevFileData;
     public void run() {
-      while (true) {
-        prevFileData = taFileView.getText();
-        try{sleep(500);}catch(InterruptedException ex) {}  // slow down the text area polling
-        try {
-          if (!taFileView.getText().equals(prevFileData)) {
-            ArrayList<String> fileData = new ArrayList<String>();
-            Collections.addAll(fileData, taFileView.getText().split("\n"));
-            sendFile(fileData);
-          }
-        }
-        catch (Exception ex) {
-          ex.printStackTrace();
-        }
+      taFileView.setOnKeyTyped(this);
+    }
+    public void handle(KeyEvent kevt) {
+      pollTextArea();
+    } 
+    public void pollTextArea() {
+      String fileString = taFileView.getText();
+      if (!fileString.equals(prevFileData)) {
+        ArrayList<String> fileData = new ArrayList<String>();
+        Collections.addAll(fileData, fileString.split("\n"));
+        sendFile(fileData);
+        prevFileData = fileString;
       }
     }
     public void upload() {
@@ -495,15 +493,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
     public void processFileData(Transaction t) {
-      Platform.runLater(new Runnable() {public void run() {
-        miSave.setDisable(false);
-        taFileView.setText("");
-        fileEditUser.setText("Edited by: " + t.getClientName());
-        ArrayList<String> fileData = t.getData();
-        for (String s : fileData) {
-          taFileView.appendText(s+"\n");
-        }
-        prevFileData = taFileView.getText();
+      ArrayList<String> fileData = t.getData();
+      String fileString = String.join("\n",fileData);
+      Platform.runLater(new Runnable() {
+        public void run() {
+          miSave.setDisable(false);
+          fileEditUser.setText("Edited by: " + t.getClientName());
+          taFileView.setText(fileString);
+          prevFileData = fileString;
       }});
     }
   }
