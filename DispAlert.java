@@ -16,10 +16,9 @@ public class DispAlert {
   public static void alertException(Exception ex) {
     Platform.runLater(new Runnable() {
       public void run() {
-        ex.printStackTrace();
-        // Alert alert = new Alert(Alert.AlertType.ERROR);
-        // alert.setContentText(ex.getMessage());
-        // alert.showAndWait();
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(ex.getMessage());
+        alert.showAndWait();
       }
     });
   }
