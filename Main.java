@@ -208,6 +208,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
        case "Save File":
           fileEditHandler.save();
+          break;
+        case "Create A Group":
+          createGroup();
+          break;
+
       }
     }
   }
@@ -309,6 +314,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(e);
      }   
   }//end doKeyExchange()
+
+  public void createGroup() {
+    new GroupCreatePopup(activeClients);
+  }
 
   public void writeText(String s, String tabName) {
     if (!tabs.containsKey(tabName)) {
