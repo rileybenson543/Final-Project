@@ -440,8 +440,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 fileEditHandler.processFileData(t);
                 break;
               case "NAME_IN_USE":
-                writeText(t.getMessage()+" is in use, please try another name","Main");
+                // writeText(t.getMessage()+" is in use, please try another name","Main");
+                DispAlert.alert(t.getMessage() + " is in use, please try another name");
                 Platform.runLater(new Runnable() {public void run() {disconnect();}});
+                break;
+              case "GROUP_NAME_IN_USE":
+                DispAlert.alert(t.getMessage() + " is in use, please try another name");
+                break;
+              case "OK":
+                DispAlert.alertInfo("Successfully created group: " + t.getMessage());
                 break;
               case "TYPING":
                 chatHandler.setActiveTyping(t.getClientName());
