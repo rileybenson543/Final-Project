@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.io.*;
 
 import java.security.*;
@@ -515,25 +517,29 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
   }
   class ChatFieldHandler extends Thread implements EventHandler<KeyEvent>{
-    private boolean typing = false;
-    public void handle(KeyEvent ke) {
-      // cooldown = 2000;
+    private int cooldown = 2000;
+    private Timer timer;
+    /**
+     * Handles a key being typed in the chat text field
+     * @param KeyEvent
+     */
+    public void handle(KeyEvent ke) { 
+      timer.cancel();
+      timer.purge();
+      timer = new Timer();
+      isTyping();
+      timer.schedule(new TimerTask() {
+        public void run() {
+          isNotTyping();
+        }
+      }, cooldown);
     }
     public void run() {
       tField.setOnKeyTyped(this);
-      while (true) {
-        if (tField.isFocused() && typing == false) {
-          isTyping();
-        }
-        else if (tField.isFocused() == false && typing == true) {
-          isNotTyping();
-        }
-        try {sleep(500);}catch(InterruptedException ie) {}
-      }
+      timer = new Timer();
     }
     private void isTyping() {
       try {
-        typing = true;
         oos.writeObject(crypto.encrypt(
           comp.compress(  
             new Transaction(name,"TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
@@ -544,7 +550,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     private void isNotTyping() {
       try {
-        typing = false;
         oos.writeObject(crypto.encrypt(
           comp.compress(  
             new Transaction(name,"NOT_TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
