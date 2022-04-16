@@ -19,10 +19,9 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
     private Stage stage = new Stage();
     private ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
     private TextField tfGroupName = new TextField();
-    private ArrayList<Group> groups = new ArrayList<Group>();
+    private Group group;
 
-    public GroupCreatePopup(ArrayList<String> activeClients, ArrayList<Group> _groups) {
-        groups = _groups;
+    public GroupCreatePopup(ArrayList<String> activeClients) {
         BorderPane bp = new BorderPane();
         VBox checkBoxVBox = new VBox();
 
@@ -57,13 +56,16 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
         getSelections();
         stage.close();
     }
-    public void getSelections() {
+    private void getSelections() {
         ArrayList<String> selectedUsers = new ArrayList<String>();
         for (CheckBox cb : checkBoxes) {
             if (cb.isSelected()) {
                 selectedUsers.add(cb.getText());
             }
         }
-        groups.add(new Group(tfGroupName.getText(), selectedUsers));
+        group = new Group(tfGroupName.getText(), selectedUsers);
+    }
+    public Group getGroup() {
+        return group;
     }
 }

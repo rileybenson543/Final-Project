@@ -70,7 +70,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private MenuItem miCreateGroup = new MenuItem("Create A Group");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
-  private ArrayList<Group> groups = new ArrayList<Group>();
+  private HashMap<String,Group> groups = new HashMap<String,Group>();
   private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
@@ -278,20 +278,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           comp.compress(
             new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray()), secKey));
       }
-      ArrayList<String> groupNameStrings = new ArrayList<String>();
-      for (Group g : groups) {
-        groupNameStrings.add(g.getGroupName());
-      }
-      Group selectedGroup = null;
-      if (groupNameStrings.contains(comboBoxSelection)) {
-        for (Group g : groups) {
-          if (g.getGroupName().equals(comboBoxSelection)) {
-            selectedGroup = g;
-          }
-        }
+      if (groups.keySet().contains(comboBoxSelection)) {
         oos.writeObject(crypto.encrypt(
           comp.compress(
-            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),selectedGroup).getByteArray()), secKey));
+            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(comboBoxSelection)).getByteArray()), secKey));
       }
 
       oos.flush();
@@ -335,12 +325,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   }//end doKeyExchange()
 
   public void createGroup() {
-    new GroupCreatePopup(activeClients,groups);
+    GroupCreatePopup gp = new GroupCreatePopup(activeClients);
+    Group group = gp.getGroup();
     try {
       oos.writeObject(crypto.encrypt(
         comp.compress(
           new Transaction(
-            "NEW_GROUP",groups).getByteArray()), secKey));
+            "NEW_GROUP",group).getByteArray()), secKey));
     }
     catch (Exception ex) {
       DispAlert.alertException(ex);
@@ -370,8 +361,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         activeClientsComboList.clear();
         activeClientsComboList.addAll(activeClients);
         ArrayList<String> groupsNames = new ArrayList<String>();
-        for (Group g : groups) {
-          groupsNames.add(g.getGroupName());
+        for (String s : groups.keySet()) {
+          groupsNames.add(s);
         }
         activeClientsComboList.addAll(groupsNames);
         comboBox.setItems(activeClientsComboList);
@@ -460,7 +451,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 chatHandler.setInactiveTyping();
                 break;
               case "NEW_GROUP":
-                groups = t.getGroups();
+                groups.put(t.getGroup().getGroupName(),t.getGroup());
                 updateComboBox();
                 break;
               case "GROUP_MESSAGE":

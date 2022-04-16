@@ -10,11 +10,11 @@ import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 import java.security.*;
 
 import javax.crypto.SecretKey;
-import javax.naming.NameNotFoundException;
 
 
 public class Server extends Application implements EventHandler<ActionEvent> {
@@ -121,7 +121,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     private ServerSocket ss;
         
     private ArrayList<SocketHandler> activeClients = new ArrayList<SocketHandler>();
-    private ArrayList<Group> groups = new ArrayList<Group>();
+    private HashMap<String,Group> groups = new HashMap<String,Group>();
     
     private volatile Boolean active = true;
 
@@ -201,17 +201,28 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
-    public void sendNewGroups() {
+    public void sendNewGroup(Group g) {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
         try {
-          oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", groups).getByteArray()), s.secKey));
+          oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", g).getByteArray()), s.secKey));
         }
         catch (IOException ex) {
           DispAlert.alertException(ex);
         }catch (Exception e) {
           e.printStackTrace();
         }
+      }
+    }
+    public void sendAllGroups(SocketHandler s) {
+      ObjectOutputStream oos = s.getOutputStream();
+      try {
+        oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", groups).getByteArray()), s.secKey));
+      }
+      catch (IOException ex) {
+        DispAlert.alertException(ex);
+      }catch (Exception e) {
+        e.printStackTrace();
       }
     }
     public void broadcast(String message,SocketHandler sender) {
@@ -312,7 +323,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     }
     public void sendToGroup(String sender, Group group, String message) {
       ArrayList<SocketHandler> groupSockets = new ArrayList<SocketHandler>();
-      for (String s : group.getGroupMembers()) {
+      for (String s : group.getGroupMembers()) { //iterate through all the group members
         for (SocketHandler sh : activeClients) {
           if (sh.getClientName().equals(s)) {
             groupSockets.add(sh);
@@ -405,8 +416,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   }
                   break;
                 case "NEW_GROUP":
-                  groups = t.getGroups();
-                  sendNewGroups();
+                  groups.put(t.getGroup().getGroupName(),t.getGroup());
+                  sendNewGroup(t.getGroup());
                   break;
                 case "GROUP_MESSAGE":
                   sendToGroup(t.getClientName(), t.getGroup(), t.getMessage());

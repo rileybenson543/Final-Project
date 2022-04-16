@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 
 public class Transaction implements Serializable {
@@ -15,7 +16,7 @@ public class Transaction implements Serializable {
     private String message;
     private Group group;
     private ArrayList<String> data;
-    private ArrayList<Group> groups;
+    private HashMap<String,Group> groups;
     // init vector
     public Transaction(String _clientName, String _command) {
         clientName = _clientName;
@@ -46,11 +47,14 @@ public class Transaction implements Serializable {
     public Transaction(String _clientName) { // sending name
       clientName = _clientName;
     }
-    public Transaction(String _command, ArrayList<Group> _groups) { // creating new group
+    public Transaction(String _command, HashMap<String,Group> _groups) { // creating new group
         command = _command;
         groups = _groups;
     }
-    
+    public Transaction(String _command, Group _group) {
+        command = _command;
+        group = _group;
+    }
     public String getClientName() {
         return clientName;
     }
@@ -66,7 +70,7 @@ public class Transaction implements Serializable {
     public ArrayList<String> getData() {
         return data;
     }
-    public ArrayList<Group> getGroups() {
+    public HashMap<String,Group> getGroups() {
         return groups;
     }
     public Group getGroup() {
