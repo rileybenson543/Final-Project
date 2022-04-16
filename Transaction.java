@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 
 public class Transaction implements Serializable {
@@ -13,7 +14,9 @@ public class Transaction implements Serializable {
     private String recipient;
     private String command;
     private String message;
+    private Group group;
     private ArrayList<String> data;
+    private HashMap<String,Group> groups;
     // init vector
     public Transaction(String _clientName, String _command) {
         clientName = _clientName;
@@ -24,6 +27,12 @@ public class Transaction implements Serializable {
         command = _command;
         message = _message;
         recipient = _recipient;
+    }
+    public Transaction(String _clientName, String _command, String _message, Group _group) { // for direct messages
+        clientName = _clientName;
+        command = _command;
+        message = _message;
+        group = _group;
     }
     public Transaction(String _clientName, String _command, String _message) { // broadcast messages
         clientName = _clientName;
@@ -38,7 +47,14 @@ public class Transaction implements Serializable {
     public Transaction(String _clientName) { // sending name
       clientName = _clientName;
     }
-    
+    public Transaction(String _command, HashMap<String,Group> _groups) { // creating new group
+        command = _command;
+        groups = _groups;
+    }
+    public Transaction(String _command, Group _group) {
+        command = _command;
+        group = _group;
+    }
     public String getClientName() {
         return clientName;
     }
@@ -53,6 +69,12 @@ public class Transaction implements Serializable {
     }
     public ArrayList<String> getData() {
         return data;
+    }
+    public HashMap<String,Group> getGroups() {
+        return groups;
+    }
+    public Group getGroup() {
+        return group;
     }
     public byte[] getByteArray() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

@@ -15,7 +15,7 @@ public class Compression {
             return baos.toByteArray();
         }
         catch (Exception ex) {
-            ex.printStackTrace();
+            DispAlert.alertException(ex);
             return null;
         }
     }
@@ -29,7 +29,7 @@ public class Compression {
             return baos.toByteArray();
         }
         catch (Exception ex) {
-            ex.printStackTrace();
+            DispAlert.alertException(ex);
             return null;
         }
     }

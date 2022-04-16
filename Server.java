@@ -10,6 +10,7 @@ import javafx.stage.*;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.*;
 import java.security.*;
 
@@ -120,6 +121,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     private ServerSocket ss;
         
     private ArrayList<SocketHandler> activeClients = new ArrayList<SocketHandler>();
+    private HashMap<String,Group> groups = new HashMap<String,Group>();
     
     private volatile Boolean active = true;
 
@@ -199,6 +201,30 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+    public void sendNewGroup(Group g) {
+      for (SocketHandler s : activeClients) {
+        ObjectOutputStream oos = s.getOutputStream();
+        try {
+          oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", g).getByteArray()), s.secKey));
+        }
+        catch (IOException ex) {
+          DispAlert.alertException(ex);
+        }catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    public void sendAllGroups(SocketHandler s) {
+      ObjectOutputStream oos = s.getOutputStream();
+      try {
+        oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", groups).getByteArray()), s.secKey));
+      }
+      catch (IOException ex) {
+        DispAlert.alertException(ex);
+      }catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
     public void broadcast(String message,SocketHandler sender) {
       for (SocketHandler s : activeClients) {
           if(!s.equals(sender)) {
@@ -252,6 +278,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           try {
             oos.writeObject(crypto.encrypt(
               comp.compress(new Transaction(sender,"DIRECT",message,recipient).getByteArray()), s.secKey));
+            oos.flush();
           }
           catch (IOException ex) {
             DispAlert.alertException(ex);
@@ -293,6 +320,32 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       if (!found) {
         writeText("Direct message request to unkown recipient: "+recipient);
       }
+    }
+    public void sendToGroup(String sender, Group group, String message) {
+      ArrayList<SocketHandler> groupSockets = new ArrayList<SocketHandler>();
+      for (String s : group.getGroupMembers()) { //iterate through all the group members
+        for (SocketHandler sh : activeClients) {
+          if (sh.getClientName().equals(s)) {
+            groupSockets.add(sh);
+          }
+        }
+      }
+      for (SocketHandler s : groupSockets) {
+        try {
+          if (!s.getClientName().equals(sender)) {
+            ObjectOutputStream oos = s.getOutputStream();
+            oos.writeObject(crypto.encrypt(
+              comp.compress(
+                new Transaction(sender,"GROUP_MESSAGE",message,group.getGroupName()).getByteArray()), s.secKey));
+            oos.flush();
+            //oos.close();
+          }
+        }
+        catch (Exception ex) {
+          DispAlert.alertException(ex);
+        }
+      }
+      
     }
     class SocketHandler extends Thread {
 
@@ -361,6 +414,13 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   else {
                     sendDirectTyping(t.getClientName(),t.getRecipient(),false);
                   }
+                  break;
+                case "NEW_GROUP":
+                  groups.put(t.getGroup().getGroupName(),t.getGroup());
+                  sendNewGroup(t.getGroup());
+                  break;
+                case "GROUP_MESSAGE":
+                  sendToGroup(t.getClientName(), t.getGroup(), t.getMessage());
                   break;
               }
             }

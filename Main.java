@@ -70,6 +70,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private MenuItem miCreateGroup = new MenuItem("Create A Group");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
+  private HashMap<String,Group> groups = new HashMap<String,Group>();
   private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
   ObservableList<String> activeClientsComboList;
   ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
@@ -210,6 +211,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           break;
        case "Save File":
           fileEditHandler.save();
+          break;
+        case "Create A Group":
+          createGroup();
+          break;
+
       }
     }
   }
@@ -226,8 +232,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
-        chatHandler = new ChatFieldHandler();
-        chatHandler.start();
+        // chatHandler = new ChatFieldHandler();
+        // chatHandler.start();
         btnConnect.setText("Disconnect");
         comboBox.setDisable(false);
       }
@@ -267,11 +273,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
-      else {
+      else if (activeClients.contains(comboBoxSelection)){
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray()), secKey));
       }
+      if (groups.keySet().contains(comboBoxSelection)) {
+        oos.writeObject(crypto.encrypt(
+          comp.compress(
+            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(comboBoxSelection)).getByteArray()), secKey));
+      }
+
       oos.flush();
     }
     catch (Exception ex) {
@@ -312,6 +324,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      }   
   }//end doKeyExchange()
 
+  public void createGroup() {
+    GroupCreatePopup gp = new GroupCreatePopup(activeClients);
+    Group group = gp.getGroup();
+    try {
+      oos.writeObject(crypto.encrypt(
+        comp.compress(
+          new Transaction(
+            "NEW_GROUP",group).getByteArray()), secKey));
+    }
+    catch (Exception ex) {
+      DispAlert.alertException(ex);
+    }
+  }
+
   public void writeText(String s, String tabName) {
     if (!tabs.containsKey(tabName)) {
       Tab t = new Tab(tabName);
@@ -327,6 +353,23 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
     ta.appendText(s+"\n");
     // taChat.appendText(s+"\n");
+  }
+
+  private void updateComboBox() {
+    Platform.runLater(new Runnable() {
+      public void run() {
+        activeClientsComboList.clear();
+        activeClientsComboList.addAll(activeClients);
+        ArrayList<String> groupsNames = new ArrayList<String>();
+        for (String s : groups.keySet()) {
+          groupsNames.add(s);
+        }
+        activeClientsComboList.addAll(groupsNames);
+        comboBox.setItems(activeClientsComboList);
+        comboBox.setValue("Everyone");
+      }
+    });
+    
   }
 
   private void processActiveClients(ArrayList<String> activeClientsStrings) {
@@ -377,6 +420,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       currentThread().setName("IncomingMessageHandler"); // mostly for debugging
       while(true) {
         try {
+            oos.reset();
             byte[] incomingBytes = (byte[])ois.readObject();
             byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
             byte[] decompressed = comp.decompress(decryptedBytes);
@@ -404,6 +448,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 break;
               case "NOT_TYPING":
                 chatHandler.setInactiveTyping();
+                break;
+              case "NEW_GROUP":
+                groups.put(t.getGroup().getGroupName(),t.getGroup());
+                updateComboBox();
+                break;
+              case "GROUP_MESSAGE":
+                writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());
                 break;
             }
         }
