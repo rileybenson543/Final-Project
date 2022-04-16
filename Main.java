@@ -327,14 +327,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public void createGroup() {
     GroupCreatePopup gp = new GroupCreatePopup(activeClients);
     Group group = gp.getGroup();
-    try {
-      oos.writeObject(crypto.encrypt(
-        comp.compress(
-          new Transaction(
-            "NEW_GROUP",group).getByteArray()), secKey));
-    }
-    catch (Exception ex) {
-      DispAlert.alertException(ex);
+    if (group != null) {
+      try {
+        oos.writeObject(crypto.encrypt(
+          comp.compress(
+            new Transaction(
+              "NEW_GROUP",group).getByteArray()), secKey));
+      }
+      catch (Exception ex) {
+        DispAlert.alertException(ex);
+      }
     }
   }
 
@@ -395,9 +397,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     for (String s : remove) {
       clientGraphicsMap.remove(s);
     }
-    activeClients.add("Everyone");
     activeClients.remove(name);
     activeClientsComboList = FXCollections.observableArrayList(activeClients);
+    activeClientsComboList.add("Everyone");
 
 
     Platform.runLater(new Runnable() {
