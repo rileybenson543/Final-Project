@@ -13,7 +13,9 @@ public class Transaction implements Serializable {
     private String recipient;
     private String command;
     private String message;
+    private Group group;
     private ArrayList<String> data;
+    private ArrayList<Group> groups;
     // init vector
     public Transaction(String _clientName, String _command) {
         clientName = _clientName;
@@ -24,6 +26,12 @@ public class Transaction implements Serializable {
         command = _command;
         message = _message;
         recipient = _recipient;
+    }
+    public Transaction(String _clientName, String _command, String _message, Group _group) { // for direct messages
+        clientName = _clientName;
+        command = _command;
+        message = _message;
+        group = _group;
     }
     public Transaction(String _clientName, String _command, String _message) { // broadcast messages
         clientName = _clientName;
@@ -37,6 +45,10 @@ public class Transaction implements Serializable {
     }
     public Transaction(String _clientName) { // sending name
       clientName = _clientName;
+    }
+    public Transaction(String _command, ArrayList<Group> _groups) { // creating new group
+        command = _command;
+        groups = _groups;
     }
     
     public String getClientName() {
@@ -53,6 +65,12 @@ public class Transaction implements Serializable {
     }
     public ArrayList<String> getData() {
         return data;
+    }
+    public ArrayList<Group> getGroups() {
+        return groups;
+    }
+    public Group getGroup() {
+        return group;
     }
     public byte[] getByteArray() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

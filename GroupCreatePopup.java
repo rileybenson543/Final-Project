@@ -16,12 +16,16 @@ import javafx.stage.WindowEvent;
 
 public class GroupCreatePopup implements EventHandler<ActionEvent> {
 
-    public GroupCreatePopup(ArrayList<String> activeClients) {
-        Stage stage = new Stage();
+    private Stage stage = new Stage();
+    private ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
+    private TextField tfGroupName = new TextField();
+    private ArrayList<Group> groups = new ArrayList<Group>();
+
+    public GroupCreatePopup(ArrayList<String> activeClients, ArrayList<Group> _groups) {
+        groups = _groups;
         BorderPane bp = new BorderPane();
         VBox checkBoxVBox = new VBox();
 
-        ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
         for (String s : activeClients) {
             CheckBox cb = new CheckBox(s);
             checkBoxes.add(cb);
@@ -31,7 +35,7 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
 
         FlowPane fp = new FlowPane(8,8);
         Label groupNameLbl = new Label ("Group Name");
-        TextField tfGroupName = new TextField();
+        
         Button createBtn = new Button("Create Group");
         createBtn.setOnAction(this);
         fp.getChildren().addAll(groupNameLbl,tfGroupName,createBtn);
@@ -46,10 +50,20 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
                     stage.close();
                 }
             });
-        stage.show();
+        stage.showAndWait();
 
     }
     public void handle(ActionEvent evt) {
-        
+        getSelections();
+        stage.close();
+    }
+    public void getSelections() {
+        ArrayList<String> selectedUsers = new ArrayList<String>();
+        for (CheckBox cb : checkBoxes) {
+            if (cb.isSelected()) {
+                selectedUsers.add(cb.getText());
+            }
+        }
+        groups.add(new Group(tfGroupName.getText(), selectedUsers));
     }
 }
