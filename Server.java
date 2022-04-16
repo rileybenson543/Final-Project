@@ -345,7 +345,17 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           DispAlert.alertException(ex);
         }
       }
-      
+    }
+    public boolean validateName(String name) {
+      if (groups.keySet().contains(name)) {
+        return false;
+      }
+      for (SocketHandler s : activeClients) {
+        if (s.getClientName().equals(name)) {
+          return false;
+        }
+      }
+      return true;
     }
     class SocketHandler extends Thread {
 
@@ -381,7 +391,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
         currentThread().setName("SocketHandler"); // mostly for debugging
         try {
-          if (!nameInUse(clientName)) {
+          if (validateName(clientName)) {
             addClient(this);
             sendActiveClients();
             while (active) {
@@ -416,8 +426,18 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   }
                   break;
                 case "NEW_GROUP":
-                  groups.put(t.getGroup().getGroupName(),t.getGroup());
-                  sendNewGroup(t.getGroup());
+                  if (validateName(t.getGroup().getGroupName())) {
+                    groups.put(t.getGroup().getGroupName(),t.getGroup());
+                    oos.writeObject(crypto.encrypt(
+                      comp.compress(
+                        new Transaction(clientName, "OK", t.getGroup().getGroupName()).getByteArray()), secKey));
+                    sendNewGroup(t.getGroup());
+                  }
+                  else {
+                    oos.writeObject(crypto.encrypt(
+                      comp.compress(
+                        new Transaction(clientName, "GROUP_NAME_IN_USE", t.getGroup().getGroupName()).getByteArray()), secKey));
+                  }
                   break;
                 case "GROUP_MESSAGE":
                   sendToGroup(t.getClientName(), t.getGroup(), t.getMessage());
