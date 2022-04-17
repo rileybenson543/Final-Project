@@ -15,6 +15,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.geometry.Side;
+import javafx.geometry.Insets;
+import javafx.scene.input.MouseEvent;
 
 import java.net.*;
 import java.util.ArrayList;
@@ -32,11 +34,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 
 
-/**
- * Main class that creates a client gui and handles all
- * the features associated with the server connection
- * @author Riley Basile-Benson, Mark Stubble
- */
+
 public class Main extends Application implements EventHandler<ActionEvent> {
 
   private Stage stage;
@@ -49,13 +47,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnSend = new Button("Send");
   
   private TextArea taFileView = new TextArea("No File Available");
+  
 
   private TextField tField = new TextField();
   private TextField nameInput = new TextField();
+  private TextField serverInput = new TextField();
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
   private Label typingLbl = new Label("");
+  
 
   private TabPane tabPane = new TabPane();
 
@@ -104,10 +105,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public static void main(String[] args) {
     launch(args);
   }
-  /**
-   * Method that starts the gui and get gui elements
-   * ready before displaying the stage
-   */
   public void start(Stage _stage) throws Exception {
     stage = _stage;
     stage.setTitle("Client");
@@ -124,6 +121,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
+    
+    
+    
 
     // Main tab creation
     Tab tMain = new Tab("Main");
@@ -134,6 +134,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tabs = new HashMap<String,Tab>();
     tabs.put("Main",tMain);
     tabPane.setSide(Side.LEFT);
+
+
+    
+    
+    
     
     //BorderPane Format
     bPane.setTop(fpRegister);
@@ -142,11 +147,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     bPane.setBottom(fpChat);
     bPane.setRight(fpActiveClients);
     
+    
     //TabPane
     tabPane.setPrefHeight(800);
     tabPane.setPrefWidth(200);
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
+    
+
+  
+    
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
@@ -155,10 +165,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
-    fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput);
+    fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput, new Label("Server IP "), serverInput);
     fpChat.getChildren().addAll(typingLbl,comboBox,tField,btnSend);
     root.getChildren().addAll(bPane);
-     
+    
+    fpRegister.setMargin(btnConnect, new Insets(0, 0, 0, 205 ));
+    
+
+    fpFileView.setStyle("-fx-background-color: #1e2124");
+    
+    
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
           disconnect();   
@@ -168,8 +184,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     scene = new Scene(root, 1000, 600); 
 
+   //css
     scene.getStylesheets().add
       (Main.class.getResource("styles.css").toExternalForm());
+    tField.setId("chat-field");
+    fpActiveClients.setId("flow-pane-clients");
+    
+    
+    
+    
+    
                           
     stage.setScene(scene);              
     stage.show();
@@ -178,13 +202,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fileEditHandler.start();
 
     comp = new Compression();
-
+    
+    
   }
-  /**
-   * Handles Action Events for the buttons and 
-   * menu items
-   * @param evt the ActionEvent to be handled
-   */
+  
   public void handle(ActionEvent evt) {
 
     if (evt.getSource() instanceof Button) {
@@ -225,17 +246,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
   }
-  /**
-   * Connects to a server on a specified ip address. It creates
-   * necessary IO streams and encryption keys. It also starts 
-   * messageHandler and chatHandler
-   */
   private void connect() {
     generateKey();
     name = nameInput.getText();
     if (!name.isEmpty()) {
       try {
-        socket = new Socket("localhost",12345); // temporary
+        socket = new Socket(serverInput.getText(),12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
         writeText("connected to "+socket.getInetAddress()+":"+socket.getPort(),"Main");
@@ -243,8 +259,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         
         messageHandler = new IncomingMessageHandler();
         messageHandler.start();
-        chatHandler = new ChatFieldHandler();
-        chatHandler.start();
+        // chatHandler = new ChatFieldHandler();
+        // chatHandler.start();
         btnConnect.setText("Disconnect");
         comboBox.setDisable(false);
       }
@@ -256,10 +272,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       writeText("Please enter a name and try again","Main");
     }
   }
-  /**
-   * Hnadles disconnecting from the server and
-   * resetting gui elements back to the original state
-   */
   private void disconnect() {
     try {
       if (socket != null) {socket.close();}
@@ -277,32 +289,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  /**
-   * This method handles sending chat messages. 
-   * It determines whether it is a broadcast, geoup or
-   * direct message and creates the transaction object 
-   * accordingly
-   * @param dataToSend the message to send
-   */
   private void send(String dataToSend) {
     try {
-      String comboBoxSelection = comboBox.getValue().toString();
+      System.out.println("sending");
+      String directMessageSelection = tabPane.getSelectionModel().getSelectedItem().getText();
+      System.out.print(directMessageSelection);
 
-      if (comboBoxSelection.equals("Everyone")) { // over here
+      if (directMessageSelection.equals("Main")) { // over here
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
-      else if (activeClients.contains(comboBoxSelection)){
+      else if (activeClients.contains(directMessageSelection)){
         oos.writeObject(crypto.encrypt(
           comp.compress(
-            new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray()), secKey));
+            new Transaction(nameInput.getText(),"DIRECT",tField.getText(),directMessageSelection).getByteArray()), secKey));
       }
-      if (groups.keySet().contains(comboBoxSelection)) {
+      if (groups.keySet().contains(directMessageSelection)) {
         oos.writeObject(crypto.encrypt(
           comp.compress(
-            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(comboBoxSelection)).getByteArray()), secKey));
+            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(directMessageSelection)).getByteArray()), secKey));
       }
 
       oos.flush();
@@ -311,27 +318,21 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  /**
-   * This method uses the Crypto class to create
-   * its own public key, private key and symmetric
-   * secret key
-   */
+  
+  //generateKey()
+  //creates Crypto object to insantiate keys
   private void generateKey() {
       crypto = new Crypto();
       crypto.init();
       pubKey = crypto.getPublicKey();
       privKey = crypto.getPrivateKey();
       secKey = crypto.getSecretKey();
+      //taChat.appendText("\nKeys Generated" + "\n"+  pubKey + "\n" + privKey); //used for testing, can be removed
   }//end generateKey()  
   
   
-  /**
-   * Handles the key exchange between the server.
-   * Reads the server's RSA public key and uses it to encrypt
-   * a new AES symetric key that is then sent to the server.
-   * The name of the client is then sent to the server to finish
-   * making the connection
-   */
+  //doKeyExchange
+  //gets key from server, responds with client name and public key
   private void doKeyExchange() {
       //get public key from server
      try {
@@ -350,32 +351,21 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(e);
      }   
   }//end doKeyExchange()
-  /**
-   * Creates a group by creating a GroupCreatePopup
-   * and then sending the received data to the server
-   */
+
   public void createGroup() {
     GroupCreatePopup gp = new GroupCreatePopup(activeClients);
     Group group = gp.getGroup();
-    if (group != null) {
-      try {
-        oos.writeObject(crypto.encrypt(
-          comp.compress(
-            new Transaction(
-              "NEW_GROUP",group).getByteArray()), secKey));
-      }
-      catch (Exception ex) {
-        DispAlert.alertException(ex);
-      }
+    try {
+      oos.writeObject(crypto.encrypt(
+        comp.compress(
+          new Transaction(
+            "NEW_GROUP",group).getByteArray()), secKey));
+    }
+    catch (Exception ex) {
+      DispAlert.alertException(ex);
     }
   }
-  /**
-   * Simplifies writing text to the chat area. 
-   * It allows you to specify the tab name and if it
-   * doesn't exist it will create one.
-   * @param s The text to be written
-   * @param tabName The name if the tab to put it in
-   */
+
   public void writeText(String s, String tabName) {
     if (!tabs.containsKey(tabName)) {
       Tab t = new Tab(tabName);
@@ -392,10 +382,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     ta.appendText(s+"\n");
     // taChat.appendText(s+"\n");
   }
-  /**
-   * Updates the combo box to the newest data found in the active clients 
-   * and for the groups. Will automatically run in main thread
-   */
+
   private void updateComboBox() {
     Platform.runLater(new Runnable() {
       public void run() {
@@ -410,68 +397,69 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         comboBox.setValue("Everyone");
       }
     });
+    
   }
-  /**
-   * This method does three things:
-   * <ul>
-   * <li>Sets the graphics for the active clients</li>
-   * <li>Sets the selction for the "to" combo box</li>
-   * <li>Removes stale clients that are no longer active from lists</li>
-   * </ul>
-   * It takes an arraylist containing all of the active users and it will
-   * automatically filter out itself from the lists
-   * @param _activeClients
-   */
-  private void processActiveClients(ArrayList<String> _activeClients) {
-    activeClients = _activeClients;
+
+  private void processActiveClients(ArrayList<String> activeClientsStrings) {
+    activeClients = activeClientsStrings;
     for (String s : activeClients) {
       if (!clientGraphicsMap.containsKey(s)) {
         Text t;
         if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
         else {t = new Text(s);}
-        t.setFill(Color.WHITE); // set text to white
-        t.setFont(Font.font("Verdana",20));
-        clientGraphicsMap.put(s,new StackPane(new Rectangle(250, 35, Color.GREY), t)); // creates the client circle if
+        FlowPane fpActiveClient = new FlowPane(t);
+        fpActiveClients.setMaxWidth(100);
+        fpActiveClient.setId("fp-active-client");
+        StackPane sPane = new StackPane();
+        sPane.getChildren().add(fpActiveClient);
+        
+         //create tab when active user is clicked
+         fpActiveClients.setOnMouseClicked(new EventHandler<MouseEvent>() { 
+         
+         public void handle(MouseEvent mevt) {
+            if(!t.getText().equals("You")) {
+               FlowPane fPane = (FlowPane)mevt.getSource();
+               writeText("",t.getText());
+            }
+            else{return;}
+         }
+    });
+        
+        clientGraphicsMap.put(s,sPane); // creates the client circle if
                                                                                         // they are not already there
+        //Platform.runLater(new Runnable() {public void run() {fpActiveClients.getChildren().add(clientGraphicsMap.get(s));}});
       }
     }
     ArrayList<String> remove = new ArrayList<String>();
     for (String s : clientGraphicsMap.keySet()) { // iterate through the keys
       if (!activeClients.contains(s)) { // removes clients from map that are 
-        remove.add(s);                  // no longer active
+        remove.add(s);    // no longer active
       }
     }
     for (String s : remove) {
       clientGraphicsMap.remove(s);
     }
+    activeClients.add("Everyone");
+    activeClients.remove(name);
+    activeClientsComboList = FXCollections.observableArrayList(activeClients);
 
-    activeClients.remove(name); // remove client name from options
-    activeClientsComboList = FXCollections.observableArrayList(activeClients); 
-    activeClientsComboList.add("Everyone"); // add everyone option
 
-    Platform.runLater(new Runnable() { // gui actions that need to run on seperate thread
+    Platform.runLater(new Runnable() {
       public void run() {
         comboBox.setItems(activeClientsComboList);
         comboBox.setValue("Everyone");
-        
-        fpActiveClients.getChildren().setAll(clientGraphicsMap.values());
+        // for (Node n : fpActiveClients.getChildren()) {
+        //   fpActiveClients.getChildren().remove(n);
+        // }
+        // fpActiveClients.getChildren().set
+        //fpActiveClients.getChildren().removeAll();
+        fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
   }
 
   class IncomingMessageHandler extends Thread {
-    /**
-     * This is the main method for processing incoming data
-     * It first processes data in this order:
-     * <ol>
-     * <li>Read incoming byte array</li>
-     * <li>Decrypt bytes</li>
-     * <li>Decompress bytes</li>
-     * <li>Reconstruct transaction object from bytes</li>
-     * </ol>
-     * The actions are then determined by use of a switch-case
-     * based on the command
-     */
+    
     public void run() {
       currentThread().setName("IncomingMessageHandler"); // mostly for debugging
       while(true) {
@@ -496,14 +484,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 fileEditHandler.processFileData(t);
                 break;
               case "NAME_IN_USE":
-                DispAlert.alert(t.getMessage() + " is in use, please try another name");
+                writeText(t.getMessage()+" is in use, please try another name","Main");
                 Platform.runLater(new Runnable() {public void run() {disconnect();}});
-                break;
-              case "GROUP_NAME_IN_USE":
-                DispAlert.alert(t.getMessage() + " is in use, please try another name");
-                break;
-              case "OK":
-                DispAlert.alertInfo("Successfully created group: " + t.getMessage());
                 break;
               case "TYPING":
                 chatHandler.setActiveTyping(t.getClientName());
@@ -529,12 +511,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
   }
-  /**
-   * This class runs in a seperate thread and handles activities 
-   * related to the file editor. It will check for changes and
-   * send them to server and also takes in new file data and records
-   * it to the text area
-   */
   class FileEditHandler extends Thread implements EventHandler<KeyEvent> {
     private String prevFileData;
     public void run() {
@@ -542,13 +518,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void handle(KeyEvent kevt) {
       pollTextArea();
-    }
-    /**
-     * This method checks the file edit text area for changes
-     * and if they exist updates the file and sends the 
-     * file data to the server
-     *  
-     */ 
+    } 
     public void pollTextArea() {
       String fileString = taFileView.getText();
       if (!fileString.equals(prevFileData)) {
@@ -558,12 +528,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         prevFileData = fileString;
       }
     }
-    /**
-     * This method contains the process for allowing a user to 
-     * upload a file to the file edit screen. It allows the user to
-     * read a .txt file into the text area and will also send
-     * it to the server
-     */
     public void upload() {
       FileChooser chooser = new FileChooser();  // create file chooser object
       chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Text Files","*.txt"));  //filters to just .txt
@@ -583,11 +547,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(ex);
       }
     }
-    /**
-     * This method allows the user to save the current state of the 
-     * text area to a .txt file. It will save the file as 
-     * "document-<date>.txt" by default
-     */
     public void save() {
       FileChooser chooser = new FileChooser();  // create file chooser object
       chooser.setInitialDirectory(new File("."));
@@ -610,12 +569,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
-    /**
-     * Sends the given file data to the server.
-     * Takes the data as an arraylist of strings
-     * each String represents one line on the text area
-     * @param fileData the data for the shared file
-     */
     public void sendFile(ArrayList<String> fileData) {
       try {
         oos.writeObject(
@@ -634,12 +587,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(e);
       }
     }
-    /**
-     * This method will take a transaction set the text area
-     * to be the data from the transaction
-     * It also sets the last edit by portion of the gui
-     * @param t the transaction object that contains the file data
-     */
     public void processFileData(Transaction t) {
       ArrayList<String> fileData = t.getData();
       String fileString = String.join("\n",fileData);
@@ -652,26 +599,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }});
     }
   }
-  /**
-   * This class handles actions relating to the chat field specifically 
-   * determining whether it is being in or not. If it is being typed in 
-   * it sends a message so that the other client display that the user is typing 
-   */
   class ChatFieldHandler extends Thread implements EventHandler<KeyEvent>{
-    private int cooldown = 2000; // amount of time after typing a key that 
-                                  // it takes before the client is no longer considered typing
+    private int cooldown = 2000;
     private Timer timer;
     /**
      * Handles a key being typed in the chat text field
-     * It starts a timer for 2 seconds and if the timer expires
-     * the client is then set as not typing. If another key is 
-     * pressed before it expires then the timer is cancelled 
-     * and a new one is started
      * @param KeyEvent
      */
     public void handle(KeyEvent ke) { 
-      timer.cancel(); // cancels current timer
-      timer.purge(); // removes cancelled timers
+      timer.cancel();
+      timer.purge();
       timer = new Timer();
       isTyping();
       timer.schedule(new TimerTask() {
@@ -681,12 +618,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }, cooldown);
     }
     public void run() {
-      tField.setOnKeyTyped(this); // sets this class to handle keys typed in the chat field
-      timer = new Timer(); // creates first timer
+      tField.setOnKeyTyped(this);
+      timer = new Timer();
     }
-    /**
-     * Sends a message to say that the client is typing
-     */
     private void isTyping() {
       try {
         oos.writeObject(crypto.encrypt(
@@ -697,9 +631,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(ex);
       }
     }
-    /**
-     * Sends a message to say that the client is no longer typing
-     */
     private void isNotTyping() {
       try {
         oos.writeObject(crypto.encrypt(
@@ -710,12 +641,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(ex);
       }
     }
-    /**
-     * This sets the display for the client that is actively typing
-     * It takes the client name as a paramter and it will be 
-     * displayed in the typingLbl
-     * @param clientName
-     */
     public void setActiveTyping(String clientName) {
       Platform.runLater(new Runnable() {
         public void run() {
@@ -723,10 +648,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
       });
     }
-    /**
-     * Sets the typingLbl back to blank to indicate
-     * that no one is typing
-     */
     public void setInactiveTyping() {
       Platform.runLater(new Runnable() {
         public void run() {
