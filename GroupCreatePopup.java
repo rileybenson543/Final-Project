@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.text.Text;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -40,6 +41,10 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
         fp.getChildren().addAll(groupNameLbl,tfGroupName,createBtn);
         fp.setAlignment(Pos.CENTER);
         bp.setBottom(fp);
+        
+        if (activeClients.isEmpty()) {
+            bp.setCenter(new Text("No Clients To Add"));
+        }
 
         Scene scene = new Scene(bp,400,400);
         stage.setScene(scene);
