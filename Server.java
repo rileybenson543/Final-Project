@@ -16,14 +16,17 @@ import java.security.*;
 
 import javax.crypto.SecretKey;
 
-
+/**
+ * Server class that facilitates client connections 
+ * and handles routing messages to the intended recipients
+ * @author Riley Basile-Benson, Mark Stubble
+ */
 public class Server extends Application implements EventHandler<ActionEvent> {
 
   private Stage stage;
   private Scene scene;
 
   private VBox root = new VBox(8);
-
 
   private Button btnReceive = new Button("Receive Connections");
   private Button btnGenerate = new Button("Generate Key");
@@ -37,12 +40,10 @@ public class Server extends Application implements EventHandler<ActionEvent> {
   ObjectInputStream ois;
   ObjectOutputStream oos;
 
-
   //instantiate Crypto class
   Crypto crypto;
   private PrivateKey privKey;
   private PublicKey pubKey;
-
 
   ServerHandler serverHandler;
   Compression comp;
@@ -72,7 +73,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     
     comp = new Compression();
   }
-  
+  /**
+   * Handles the button presses
+   */
   public void handle(ActionEvent evt) {
 
     Button btn = (Button)evt.getSource();
@@ -95,18 +98,25 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       }
    }
    
-  //generateKey()
-  //method to generate a keypair for the server
-  //server creates ONE key and distributes to clients
+  /**
+   * Generates a key pair using the Crypto class
+   * The server creates one public and distributes
+   * to the clients
+   */
   private void generateKey() {     
       crypto = new Crypto();
       crypto.init();
       privKey =  crypto.getPrivateKey();
       pubKey = crypto.getPublicKey();
-      //tArea.appendText("\nKeys Generated" + "\n"+  pubKey + "\n" + privKey); //used for testing, can be removed
+      
   }//end generateKey()
   
-  
+  /**
+   * Allows writing text to the text area
+   * from other threads and ensuring it executes 
+   * on main thread
+   * @param s text to write
+   */
   public void writeText(String s) {
     Platform.runLater(new Runnable() {
       public void run() {
@@ -115,7 +125,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     });
     
   }
-  
+  /**
+   * Class that runs in seperate thread and handles 
+   * accepting new client connections
+   * It also interacts with the clients by 
+   * allowing direct messages or broadcasting
+   */
   class ServerHandler extends Thread {
 
     private ServerSocket ss;
@@ -126,12 +141,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     private volatile Boolean active = true;
 
     ObjectOutputStream oos;
-
     
-    public ServerHandler() {
-
-    }
-    
+    /**
+     * Infinite loop that waits for a new
+     * client connection and creates a socket handler
+     */
     public void run() {
       try {
         ss = new ServerSocket(12345);
@@ -149,41 +163,46 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         System.out.println("Socket Closed");
       }
     }
-
+    /**
+     * Handles shutting down the server
+     * It will disconnect all clients and
+     * clear the active client lists
+     */
     public void shutdown() {
       try {
         active = false;
         ss.close();
         for (SocketHandler s : activeClients) {
             s.setInactive();
-            // s.stop(); //need to find a better way to do this
         }
         System.out.println("shutdown");
         activeClients.clear();
-        // Thread.currentThread().interrupt();
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
       }
     }
-    public boolean nameInUse(String name) {
-      boolean inUse = false;
-      for (SocketHandler s : activeClients) {
-        if (s.getClientName().equals(name)) {
-          inUse = true;
-        }
-      }
-      return inUse;
-    }
+    /**
+     * Adds a client to the list
+     * @param s
+     */
     public void addClient(SocketHandler s) {
       activeClients.add(s);  
     }
+    /**
+     * Sets a client as inactive by removing it from the
+     * list and updating all other clients
+     * @param _s the client to remove
+     */
     public void setInactiveSocketHandler(SocketHandler _s) {
       activeClients.remove(_s);
       sendActiveClients();
       System.out.println(_s.getClientName()+" Disconnected");
-
     }
+    /**
+     * Sends all the clients an ArrayList<String>
+     * of all the active users
+     */
     public void sendActiveClients() {
       ArrayList<String> activeClientsStrings = new ArrayList<String>();
       for (SocketHandler s : activeClients) {
@@ -201,6 +220,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+    /**
+     * Sends the clients the new group 
+     * that was made so they have access
+     * @param g the Group object
+     */
     public void sendNewGroup(Group g) {
       for (SocketHandler s : activeClients) {
         ObjectOutputStream oos = s.getOutputStream();
@@ -214,6 +238,10 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+    /**
+     * Sends the client all of the active groups
+     * @param s the person to send to
+     */
     public void sendAllGroups(SocketHandler s) {
       ObjectOutputStream oos = s.getOutputStream();
       try {
@@ -225,19 +253,29 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         e.printStackTrace();
       }
     }
+    /**
+     * Sends a String message to all users
+     * @param message
+     * @param sender
+     */
     public void broadcast(String message,SocketHandler sender) {
       for (SocketHandler s : activeClients) {
-          if(!s.equals(sender)) {
-              ObjectOutputStream oos = s.getOutputStream();
+        if(!s.equals(sender)) {
+            ObjectOutputStream oos = s.getOutputStream();
 
-              try {
-                oos.writeObject(crypto.encrypt(
-                  comp.compress(
-                    new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray()), s.secKey));}
-              catch (Exception ex) {DispAlert.alertException(ex);} 
-          }
+            try {
+              oos.writeObject(crypto.encrypt(
+                comp.compress(
+                  new Transaction(sender.getClientName(),"BROADCAST",message).getByteArray()), s.secKey));}
+            catch (Exception ex) {DispAlert.alertException(ex);} 
         }
+      }
     }
+    /**
+     * Sends data to all clients
+     * @param data ArrayList<String>
+     * @param sender
+     */
     public void broadcast(ArrayList<String> data, String sender) {
       for (SocketHandler s : activeClients) {
           if(!s.getClientName().equals(sender)) {
@@ -249,6 +287,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           }
         }
     }
+    /**
+     * Sends an active typing to signal
+     * to all active clients
+     * @param sender
+     * @param typing
+     */
     public void broadcastTyping(String sender,boolean typing) { // for broadcasting active typing
       for (SocketHandler s : activeClients) {
         if(!s.getClientName().equals(sender)) {
@@ -269,6 +313,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+    /**
+     * Sends a given message to one client
+     * @param sender
+     * @param recipient
+     * @param message
+     */
     public void sendDirect(String sender,String recipient,String message) {
       boolean found = false;
       for (SocketHandler s : activeClients) {
@@ -292,6 +342,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         writeText("Direct message request to unkown recipient: "+recipient);
       }
     }
+    /**
+     * Sends an active typing signal directly to one person
+     * @param sender
+     * @param recipient
+     * @param typing boolean
+     */
     public void sendDirectTyping(String sender, String recipient, boolean typing) {
       boolean found = false;
       for (SocketHandler s : activeClients) {
@@ -321,6 +377,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         writeText("Direct message request to unkown recipient: "+recipient);
       }
     }
+    /**
+     * Sends a message to memebers of a specifc group
+     * @param sender 
+     * @param group
+     * @param message
+     */
     public void sendToGroup(String sender, Group group, String message) {
       ArrayList<SocketHandler> groupSockets = new ArrayList<SocketHandler>();
       for (String s : group.getGroupMembers()) { //iterate through all the group members
@@ -346,6 +408,13 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+    /**
+     * Determines whether a name is already
+     * in use by another client or group
+     * and returns a boolean value
+     * @param name the name to check
+     * @return boolean
+     */
     public boolean validateName(String name) {
       if (groups.keySet().contains(name)) {
         return false;
