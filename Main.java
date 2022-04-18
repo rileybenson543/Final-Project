@@ -403,6 +403,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       catch (Exception ex) {
         DispAlert.alertException(ex);
       }
+    }
   }
   /**
    * Simplifies writing text to the chat area. 
@@ -441,6 +442,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           groupsNames.add(s);
         }
         activeClientsComboList.addAll(groupsNames);
+        activeClientsComboList.add("Everyone");
         comboBox.setItems(activeClientsComboList);
         comboBox.setValue("Everyone");
       }

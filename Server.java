@@ -69,7 +69,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                                         
     stage.setScene(scene);              
     stage.show();
-    btnConnect.setStyle("-fx-background-color: black");
+    // btnConnect.setStyle("-fx-background-color: black");
     
     comp = new Compression();
   }
