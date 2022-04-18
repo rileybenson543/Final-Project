@@ -15,6 +15,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.geometry.Side;
+import javafx.geometry.Insets;
+import javafx.scene.input.MouseEvent;
 
 import java.net.*;
 import java.util.ArrayList;
@@ -49,13 +51,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnSend = new Button("Send");
   
   private TextArea taFileView = new TextArea("No File Available");
+  
 
   private TextField tField = new TextField();
   private TextField nameInput = new TextField();
+  private TextField serverInput = new TextField();
 
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
   private Label typingLbl = new Label("");
+  
 
   private TabPane tabPane = new TabPane();
 
@@ -124,6 +129,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     btnSend.setOnAction(this);
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
+    
+    
+    
 
     // Main tab creation
     Tab tMain = new Tab("Main");
@@ -134,6 +142,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tabs = new HashMap<String,Tab>();
     tabs.put("Main",tMain);
     tabPane.setSide(Side.LEFT);
+
+
+    
+    
+    
     
     //BorderPane Format
     bPane.setTop(fpRegister);
@@ -142,11 +155,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     bPane.setBottom(fpChat);
     bPane.setRight(fpActiveClients);
     
+    
     //TabPane
     tabPane.setPrefHeight(800);
     tabPane.setPrefWidth(200);
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
+    
+
+  
+    
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
@@ -155,10 +173,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
-    fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput);
+    fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput, new Label("Server IP "), serverInput);
     fpChat.getChildren().addAll(typingLbl,comboBox,tField,btnSend);
     root.getChildren().addAll(bPane);
-     
+    
+    fpRegister.setMargin(btnConnect, new Insets(0, 0, 0, 205 ));
+    
+
+    fpFileView.setStyle("-fx-background-color: #1e2124");
+    
+    
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
           disconnect();   
@@ -168,8 +192,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     scene = new Scene(root, 1000, 600); 
 
+   //css
     scene.getStylesheets().add
       (Main.class.getResource("styles.css").toExternalForm());
+    tField.setId("chat-field");
+    fpActiveClients.setId("flow-pane-clients");
+    
+    
+    
+    
+    
                           
     stage.setScene(scene);              
     stage.show();
@@ -178,7 +210,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fileEditHandler.start();
 
     comp = new Compression();
-
+    
+    
   }
   /**
    * Handles Action Events for the buttons and 
@@ -229,13 +262,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
    * Connects to a server on a specified ip address. It creates
    * necessary IO streams and encryption keys. It also starts 
    * messageHandler and chatHandler
-   */
+  */
   private void connect() {
     generateKey();
     name = nameInput.getText();
     if (!name.isEmpty()) {
       try {
-        socket = new Socket("localhost",12345); // temporary
+        socket = new Socket(serverInput.getText(),12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
         ois = new ObjectInputStream(socket.getInputStream());
         writeText("connected to "+socket.getInetAddress()+":"+socket.getPort(),"Main");
@@ -256,8 +289,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       writeText("Please enter a name and try again","Main");
     }
   }
-  /**
-   * Hnadles disconnecting from the server and
+   /**
+   * Handles disconnecting from the server and
    * resetting gui elements back to the original state
    */
   private void disconnect() {
@@ -277,7 +310,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  /**
+   /**
    * This method handles sending chat messages. 
    * It determines whether it is a broadcast, geoup or
    * direct message and creates the transaction object 
@@ -286,23 +319,25 @@ public class Main extends Application implements EventHandler<ActionEvent> {
    */
   private void send(String dataToSend) {
     try {
-      String comboBoxSelection = comboBox.getValue().toString();
+      System.out.println("sending");
+      String directMessageSelection = tabPane.getSelectionModel().getSelectedItem().getText();
+      System.out.print(directMessageSelection);
 
-      if (comboBoxSelection.equals("Everyone")) { // over here
+      if (directMessageSelection.equals("Main")) { // over here
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
-      else if (activeClients.contains(comboBoxSelection)){
+      else if (activeClients.contains(directMessageSelection)){
         oos.writeObject(crypto.encrypt(
           comp.compress(
-            new Transaction(nameInput.getText(),"DIRECT",tField.getText(),comboBoxSelection).getByteArray()), secKey));
+            new Transaction(nameInput.getText(),"DIRECT",tField.getText(),directMessageSelection).getByteArray()), secKey));
       }
-      if (groups.keySet().contains(comboBoxSelection)) {
+      if (groups.keySet().contains(directMessageSelection)) {
         oos.writeObject(crypto.encrypt(
           comp.compress(
-            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(comboBoxSelection)).getByteArray()), secKey));
+            new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(directMessageSelection)).getByteArray()), secKey));
       }
 
       oos.flush();
@@ -311,7 +346,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       DispAlert.alertException(ex);
     }
   }
-  /**
+  
+   /**
    * This method uses the Crypto class to create
    * its own public key, private key and symmetric
    * secret key
@@ -350,7 +386,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         DispAlert.alertException(e);
      }   
   }//end doKeyExchange()
-  /**
+   /**
    * Creates a group by creating a GroupCreatePopup
    * and then sending the received data to the server
    */
@@ -367,7 +403,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       catch (Exception ex) {
         DispAlert.alertException(ex);
       }
-    }
   }
   /**
    * Simplifies writing text to the chat area. 
@@ -410,6 +445,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         comboBox.setValue("Everyone");
       }
     });
+    
   }
   /**
    * This method does three things:
@@ -422,45 +458,59 @@ public class Main extends Application implements EventHandler<ActionEvent> {
    * automatically filter out itself from the lists
    * @param _activeClients
    */
-  private void processActiveClients(ArrayList<String> _activeClients) {
-    activeClients = _activeClients;
+  private void processActiveClients(ArrayList<String> activeClientsStrings) {
+    activeClients = activeClientsStrings;
     for (String s : activeClients) {
       if (!clientGraphicsMap.containsKey(s)) {
         Text t;
         if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
         else {t = new Text(s);}
-        t.setFill(Color.WHITE); // set text to white
-        t.setFont(Font.font("Verdana",20));
-        clientGraphicsMap.put(s,new StackPane(new Rectangle(250, 35, Color.GREY), t)); // creates the client circle if
+        FlowPane fpActiveClient = new FlowPane(t);
+        fpActiveClients.setMaxWidth(100);
+        fpActiveClient.setId("fp-active-client");
+        StackPane sPane = new StackPane();
+        sPane.getChildren().add(fpActiveClient);
+        
+         //create tab when active user is clicked
+         fpActiveClients.setOnMouseClicked(new EventHandler<MouseEvent>() { 
+         
+         public void handle(MouseEvent mevt) {
+            if(!t.getText().equals("You")) {
+               FlowPane fPane = (FlowPane)mevt.getSource();
+               writeText("",t.getText());
+            }
+            else{return;}
+         }
+    });
+        
+        clientGraphicsMap.put(s,sPane); // creates the client circle if
                                                                                         // they are not already there
+        //Platform.runLater(new Runnable() {public void run() {fpActiveClients.getChildren().add(clientGraphicsMap.get(s));}});
       }
     }
     ArrayList<String> remove = new ArrayList<String>();
     for (String s : clientGraphicsMap.keySet()) { // iterate through the keys
       if (!activeClients.contains(s)) { // removes clients from map that are 
-        remove.add(s);                  // no longer active
+        remove.add(s);    // no longer active
       }
     }
     for (String s : remove) {
       clientGraphicsMap.remove(s);
     }
-
     activeClients.remove(name); // remove client name from options
     activeClientsComboList = FXCollections.observableArrayList(activeClients); 
     activeClientsComboList.add("Everyone"); // add everyone option
 
-    Platform.runLater(new Runnable() { // gui actions that need to run on seperate thread
+
+    Platform.runLater(new Runnable() {
       public void run() {
         comboBox.setItems(activeClientsComboList);
         comboBox.setValue("Everyone");
-        
-        fpActiveClients.getChildren().setAll(clientGraphicsMap.values());
+        fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
   }
-
-  class IncomingMessageHandler extends Thread {
-    /**
+  /**
      * This is the main method for processing incoming data
      * It first processes data in this order:
      * <ol>
@@ -471,7 +521,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      * </ol>
      * The actions are then determined by use of a switch-case
      * based on the command
-     */
+   */
+  class IncomingMessageHandler extends Thread {
+    
     public void run() {
       currentThread().setName("IncomingMessageHandler"); // mostly for debugging
       while(true) {
@@ -542,7 +594,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
     public void handle(KeyEvent kevt) {
       pollTextArea();
-    }
+    } 
     /**
      * This method checks the file edit text area for changes
      * and if they exist updates the file and sends the 
@@ -715,7 +767,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      * It takes the client name as a paramter and it will be 
      * displayed in the typingLbl
      * @param clientName
-     */
+    */
     public void setActiveTyping(String clientName) {
       Platform.runLater(new Runnable() {
         public void run() {
@@ -726,7 +778,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     /**
      * Sets the typingLbl back to blank to indicate
      * that no one is typing
-     */
+    */
     public void setInactiveTyping() {
       Platform.runLater(new Runnable() {
         public void run() {
