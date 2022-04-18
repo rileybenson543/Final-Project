@@ -15,13 +15,22 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
+/**
+ * This class facilitates creating a popup for creating a new group.
+ * It is given the ArrayList of the active clients for the gui
+ * and returns a group object
+ */
 public class GroupCreatePopup implements EventHandler<ActionEvent> {
 
     private Stage stage = new Stage();
     private ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
     private TextField tfGroupName = new TextField();
     private Group group;
-
+    /**
+     * Constructor for the class that builds the gui and
+     * displays it
+     * @param activeClients
+     */
     public GroupCreatePopup(ArrayList<String> activeClients) {
         BorderPane bp = new BorderPane();
         VBox checkBoxVBox = new VBox();
@@ -57,10 +66,18 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
         stage.showAndWait();
 
     }
+    /**
+     * Handles the button click for the
+     * "Create Group" button
+     */
     public void handle(ActionEvent evt) {
         getSelections();
         stage.close();
     }
+    /**
+     * Method that gathers the selected checkboxes and
+     * uses that to create a group object
+     */
     private void getSelections() {
         ArrayList<String> selectedUsers = new ArrayList<String>();
         for (CheckBox cb : checkBoxes) {
@@ -70,6 +87,11 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
         }
         group = new Group(tfGroupName.getText(), selectedUsers);
     }
+    /**
+     * Accessor method for the main class to 
+     * retrieve the created group object
+     * @return group
+     */
     public Group getGroup() {
         return group;
     }
