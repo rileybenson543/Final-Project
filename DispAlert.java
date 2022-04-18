@@ -2,8 +2,14 @@
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
-
+/**
+ * This class helps simplify creating an alert given 
+ * a specific message or an exception.
+ * It has two options, and alert as an ERROR or
+ * as INFORMATION
+ */
 public class DispAlert {
+
   public static void alert(String message) {
     Platform.runLater(new Runnable() {
       public void run() {
@@ -13,6 +19,9 @@ public class DispAlert {
       }
     });
   }
+  /**
+   * 
+   */
   public static void alertException(Exception ex) {
     Platform.runLater(new Runnable() {
       public void run() {
