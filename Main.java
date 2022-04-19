@@ -17,6 +17,7 @@ import javafx.stage.*;
 import javafx.geometry.Side;
 import javafx.geometry.Insets;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.shape.Circle;
 
 import java.net.*;
 import java.util.ArrayList;
@@ -81,8 +82,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private ArrayList<String> activeClients = new ArrayList<String>();
   private HashMap<String,Group> groups = new HashMap<String,Group>();
   private HashMap<String,StackPane> clientGraphicsMap = new HashMap<String,StackPane>();
-  ObservableList<String> activeClientsComboList;
-  ComboBox<String> comboBox = new ComboBox<String>(activeClientsComboList);
+
 
   HashMap<String,Tab> tabs;
   // ArrayList<Tab> tabs;
@@ -130,8 +130,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
     
-    
-    
+
 
     // Main tab creation
     Tab tMain = new Tab("Main");
@@ -162,19 +161,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
     
-
-  
     
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
 
-    comboBox.setDisable(true);
 
     //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
     fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput, new Label("Server IP "), serverInput);
-    fpChat.getChildren().addAll(typingLbl,comboBox,tField,btnSend);
+    fpChat.getChildren().addAll(typingLbl,tField,btnSend);
     root.getChildren().addAll(bPane);
     
     fpRegister.setMargin(btnConnect, new Insets(0, 0, 0, 205 ));
@@ -198,11 +194,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     tField.setId("chat-field");
     fpActiveClients.setId("flow-pane-clients");
     
-    
-    
-    
-    
-                          
+                  
     stage.setScene(scene);              
     stage.show();
     
@@ -279,7 +271,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         chatHandler = new ChatFieldHandler();
         chatHandler.start();
         btnConnect.setText("Disconnect");
-        comboBox.setDisable(false);
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
@@ -300,8 +291,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         public void run() {
           btnConnect.setText("Connect");
           fileEditUser.setText("");
-          comboBox.setItems(null);
-          comboBox.setDisable(true);
           fpActiveClients.getChildren().clear();
         }
       });
@@ -324,17 +313,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       System.out.print(directMessageSelection);
 
       if (directMessageSelection.equals("Main")) { // over here
+        writeText(name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
       else if (activeClients.contains(directMessageSelection)){
+        writeText(name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"DIRECT",tField.getText(),directMessageSelection).getByteArray()), secKey));
       }
       if (groups.keySet().contains(directMessageSelection)) {
+        writeText(name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(directMessageSelection)).getByteArray()), secKey));
@@ -428,27 +420,38 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     ta.appendText(s+"\n");
     // taChat.appendText(s+"\n");
   }
-  /**
-   * Updates the combo box to the newest data found in the active clients 
-   * and for the groups. Will automatically run in main thread
-   */
-  private void updateComboBox() {
-    Platform.runLater(new Runnable() {
-      public void run() {
-        activeClientsComboList.clear();
-        activeClientsComboList.addAll(activeClients);
-        ArrayList<String> groupsNames = new ArrayList<String>();
-        for (String s : groups.keySet()) {
-          groupsNames.add(s);
-        }
-        activeClientsComboList.addAll(groupsNames);
-        activeClientsComboList.add("Everyone");
-        comboBox.setItems(activeClientsComboList);
-        comboBox.setValue("Everyone");
+
+   //class to display create the graphic for active clients on the right of the screen
+   class ClientGraphic extends FlowPane {
+      private String clientName;//name of the client the pane belongs to
+      
+      //Constructor
+      //@param _clientName - name of client pane belongs to
+
+      public ClientGraphic(String _clientName) {
+        clientName = _clientName;
+        
+        this.setMaxWidth(150);
+        this.setHgap(10);
+        
+        this.getChildren().addAll(new Circle(18, Color.color(Math.random(), Math.random(), Math.random())), new Label(clientName));
+        this.setId("client-graphic");
+        
+        this.setOnMouseClicked(new EventHandler<MouseEvent>() { 
+            public void handle(MouseEvent mevt) {
+               if(!clientName.equals("You")) {
+                  writeText("",clientName);
+               }
+            }
+         });
       }
-    });
-    
-  }
+      //@override
+      public void run() {
+      } 
+   }//end ClientGraphic
+
+
+  
   /**
    * This method does three things:
    * <ul>
@@ -467,23 +470,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         Text t;
         if(s.equals(name)) {t = new Text("You");} // determines whether the active client is you
         else {t = new Text(s);}
-        FlowPane fpActiveClient = new FlowPane(t);
-        fpActiveClients.setMaxWidth(100);
-        fpActiveClient.setId("fp-active-client");
+
         StackPane sPane = new StackPane();
-        sPane.getChildren().add(fpActiveClient);
-        
-         //create tab when active user is clicked
-         fpActiveClients.setOnMouseClicked(new EventHandler<MouseEvent>() { 
-         
-         public void handle(MouseEvent mevt) {
-            if(!t.getText().equals("You")) {
-               FlowPane fPane = (FlowPane)mevt.getSource();
-               writeText("",t.getText());
-            }
-            else{return;}
-         }
-    });
+        sPane.getChildren().addAll(new ClientGraphic(t.getText()));
         
         clientGraphicsMap.put(s,sPane); // creates the client circle if
                                                                                         // they are not already there
@@ -500,14 +489,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       clientGraphicsMap.remove(s);
     }
     activeClients.remove(name); // remove client name from options
-    activeClientsComboList = FXCollections.observableArrayList(activeClients); 
-    activeClientsComboList.add("Everyone"); // add everyone option
 
 
     Platform.runLater(new Runnable() {
       public void run() {
-        comboBox.setItems(activeClientsComboList);
-        comboBox.setValue("Everyone");
         fpActiveClients.getChildren().setAll(clientGraphicsMap.values()); 
       }
     });
@@ -567,7 +552,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 break;
               case "NEW_GROUP":
                 groups.put(t.getGroup().getGroupName(),t.getGroup());
-                updateComboBox();
                 break;
               case "GROUP_MESSAGE":
                 writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());
@@ -745,7 +729,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       try {
         oos.writeObject(crypto.encrypt(
           comp.compress(  
-            new Transaction(name,"TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
+            new Transaction(name,"TYPING","",tabPane.getSelectionModel().getSelectedItem().getText()).getByteArray()),secKey));
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
@@ -758,7 +742,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       try {
         oos.writeObject(crypto.encrypt(
           comp.compress(  
-            new Transaction(name,"NOT_TYPING","",comboBox.getValue().toString()).getByteArray()),secKey));
+            new Transaction(name,"NOT_TYPING","",tabPane.getSelectionModel().getSelectedItem().getText()).getByteArray()),secKey));
       }
       catch (Exception ex) {
         DispAlert.alertException(ex);
