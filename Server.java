@@ -481,7 +481,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   fileEditHandler.receiveFile(t);
                   break;
                 case "TYPING":
-                  if (t.getRecipient().equals("Everyone")) {
+                  if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),true);
                   }
                   else {
@@ -489,7 +489,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   }
                   break;
                 case "NOT_TYPING":
-                  if (t.getRecipient().equals("Everyone")) {
+                  if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),false);
                   }
                   else {
