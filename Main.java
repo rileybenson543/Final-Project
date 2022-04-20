@@ -18,6 +18,9 @@ import javafx.geometry.Side;
 import javafx.geometry.Insets;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Circle;
+import javafx.event.EventType;
+
+
 
 import java.net.*;
 import java.util.ArrayList;
@@ -27,6 +30,9 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.io.*;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
+
 
 import java.security.*;
 import javax.crypto.SecretKey;
@@ -52,6 +58,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Button btnSend = new Button("Send");
   
   private TextArea taFileView = new TextArea("No File Available");
+  
   
 
   private TextField tField = new TextField();
@@ -125,8 +132,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     miSave.setOnAction(this);
     miUpload.setOnAction(this);
     
+    
     btnConnect.setOnAction(this);
     btnSend.setOnAction(this);
+    //add functionality of send button to pressing enter key
+    tField.setOnKeyPressed(new EventHandler<KeyEvent>() {
+      public void handle(KeyEvent kevt) {
+         if ((kevt.getCode() == KeyCode.ENTER)) {
+            send(tField.getText());
+            tField.setText("");
+         }
+      }
+    });
+      
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
     
@@ -134,7 +152,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     // Main tab creation
     Tab tMain = new Tab("Main");
-    tMain.setContent(new TextArea());
+    TextArea taMain = new TextArea();
+    taMain.setEditable(false);
+    taMain.setWrapText(true);
+    tMain.setContent(taMain);
     tMain.setClosable(false);
     
     tabPane.getTabs().addAll(tMain);
@@ -157,7 +178,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     
     //TabPane
     tabPane.setPrefHeight(800);
-    tabPane.setPrefWidth(200);
+    tabPane.setPrefWidth(250);
+    
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
     
@@ -165,7 +187,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
-
+    
 
     //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
@@ -173,11 +195,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     fpChat.getChildren().addAll(typingLbl,tField,btnSend);
     root.getChildren().addAll(bPane);
     
-    fpRegister.setMargin(btnConnect, new Insets(0, 0, 0, 205 ));
-    
+    fpRegister.setAlignment(Pos.CENTER);
+    stage.setMinWidth(1000);
+    stage.setMinHeight(600);
 
     fpFileView.setStyle("-fx-background-color: #1e2124");
-    
+    taFileView.setEditable(false);
     
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {   
@@ -249,7 +272,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
       }
     }
-  }
+  }//end EventHandler
+
+  
+  
+  
   /**
    * Connects to a server on a specified ip address. It creates
    * necessary IO streams and encryption keys. It also starts 
@@ -309,24 +336,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
+      String time = "<"+ LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")).toString() + "> ";
       String directMessageSelection = tabPane.getSelectionModel().getSelectedItem().getText();
-      System.out.print(directMessageSelection);
-
+      
       if (directMessageSelection.equals("Main")) { // over here
-        writeText(name + ": " + dataToSend, directMessageSelection);
+        writeText(time + name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
       else if (activeClients.contains(directMessageSelection)){
-        writeText(name + ": " + dataToSend, directMessageSelection);
+        writeText(time + name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"DIRECT",tField.getText(),directMessageSelection).getByteArray()), secKey));
       }
       if (groups.keySet().contains(directMessageSelection)) {
-        writeText(name + ": " + dataToSend, directMessageSelection);
+        writeText(time + name + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(directMessageSelection)).getByteArray()), secKey));
@@ -409,16 +436,32 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       Tab t = new Tab(tabName);
       t.setContent(new TextArea());
       t.setClosable(false);
-      tabs.put(tabName,t);
-      Platform.runLater(new Runnable() {
-        public void run() {
-          tabPane.getTabs().add(t);
+         tabs.put(tabName,t);
+         Platform.runLater(new Runnable() {
+           public void run() {
+             tabPane.getTabs().add(t);
+           }
+         });
         }
-      });
-    }
+    Tab t = tabs.get(tabName);
+      if (!t.isSelected() && !s.equals("")) { //tab 
+      t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
+         t.setOnSelectionChanged(new EventHandler<Event>() {
+            public void handle(Event evt) {
+               Tab selectedTab = (Tab)evt.getSource(); 
+               if (selectedTab.isSelected()) {
+                  System.out.print(selectedTab.getText());
+                  t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
+               }
+            }
+         });
+      }
+
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
+    ta.setEditable(false);
     ta.appendText(s+"\n");
     // taChat.appendText(s+"\n");
+    
   }
 
    //class to display create the graphic for active clients on the right of the screen
@@ -526,7 +569,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 writeText("<" + t.getClientName()+"> " + t.getMessage(),"Main");
                 break;
               case "DIRECT":
-                writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) .toString() +"> " + t.getMessage(),t.getClientName());
+                writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) .toString() +"> " +t .getClientName() + ": " + t.getMessage(),t.getClientName());
                 break;
               case "CLIENTS":
                 processActiveClients(t.getData());
@@ -607,6 +650,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Text Files","*.txt"));  //filters to just .txt
       File fileToUpload = chooser.showOpenDialog(stage);
       try {
+        taFileView.setEditable(true);
         taFileView.setText("");
         Scanner sc = new Scanner(new FileInputStream(fileToUpload));
         ArrayList<String> fileData = new ArrayList<String>();
