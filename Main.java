@@ -412,6 +412,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public void createGroup() {
     GroupCreatePopup gp = new GroupCreatePopup(activeClients);
     Group group = gp.getGroup();
+    group.addMember(name); // adds self to group
     if (group != null) {
       try {
         oos.writeObject(crypto.encrypt(
@@ -444,17 +445,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
          });
         }
     Tab t = tabs.get(tabName);
-      if (!t.isSelected() && !s.equals("")) { //tab 
-      t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
-         t.setOnSelectionChanged(new EventHandler<Event>() {
-            public void handle(Event evt) {
-               Tab selectedTab = (Tab)evt.getSource(); 
-               if (selectedTab.isSelected()) {
-                  System.out.print(selectedTab.getText());
-                  t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
-               }
-            }
-         });
+    if (!t.isSelected() && !s.equals("")) { //tab 
+    t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
+        t.setOnSelectionChanged(new EventHandler<Event>() {
+          public void handle(Event evt) {
+              Tab selectedTab = (Tab)evt.getSource(); 
+              if (selectedTab.isSelected()) {
+                System.out.print(selectedTab.getText());
+                t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
+              }
+          }
+        });
       }
 
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
@@ -540,6 +541,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     });
   }
+
+  public void processNewGroup(Group g) {
+    groups.put(g.getGroupName(),g);
+    writeText("", g.getGroupName());
+  }
   /**
      * This is the main method for processing incoming data
      * It first processes data in this order:
@@ -588,13 +594,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 DispAlert.alertInfo("Successfully created group: " + t.getMessage());
                 break;
               case "TYPING":
-                chatHandler.setActiveTyping(t.getClientName());
+                chatHandler.setActiveTyping(t.getClientName(),t.getRecipient());
                 break;
               case "NOT_TYPING":
-                chatHandler.setInactiveTyping();
+                chatHandler.setInactiveTyping(t.getClientName());
                 break;
               case "NEW_GROUP":
                 groups.put(t.getGroup().getGroupName(),t.getGroup());
+                processNewGroup(t.getGroup());
                 break;
               case "GROUP_MESSAGE":
                 writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());
@@ -743,6 +750,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     private int cooldown = 2000; // amount of time after typing a key that 
                                   // it takes before the client is no longer considered typing
     private Timer timer;
+    // private Tab tabSelection;
     /**
      * Handles a key being typed in the chat text field
      * It starts a timer for 2 seconds and if the timer expires
@@ -798,23 +806,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      * displayed in the typingLbl
      * @param clientName
     */
-    public void setActiveTyping(String clientName) {
-      Platform.runLater(new Runnable() {
-        public void run() {
-          typingLbl.setText(clientName + " is typing ...");
-        }
-      });
+    public void setActiveTyping(String clientName, String recipient) {
+      if (tabPane.getSelectionModel().getSelectedItem().getText().equals(recipient)) {
+        Platform.runLater(new Runnable() {
+          public void run() {
+            typingLbl.setText(clientName + " is typing ...");
+          }
+        });
+      }
     }
     /**
      * Sets the typingLbl back to blank to indicate
      * that no one is typing
     */
-    public void setInactiveTyping() {
-      Platform.runLater(new Runnable() {
-        public void run() {
-          typingLbl.setText("");
-        }
-      });
-    }
+    public void setInactiveTyping(String clientName) {
+      // if (tabPane.getSelectionModel().getSelectedItem().getText().equals(clientName)) {
+        Platform.runLater(new Runnable() {
+          public void run() {
+            typingLbl.setText("");
+          }
+        });
+      }
+    // }
   }    
 }	
