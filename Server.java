@@ -15,7 +15,6 @@ import java.io.*;
 import java.security.*;
 
 import javax.crypto.SecretKey;
-import javax.xml.namespace.QName;
 
 /**
  * Server class that facilitates client connections 
