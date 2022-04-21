@@ -239,6 +239,24 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
       }
     }
+
+    public void editGroup(Transaction t) {
+      for (SocketHandler s : activeClients) {
+        if (!s.getClientName().equals(t.getClientName())) {
+          ObjectOutputStream oos = s.getOutputStream();
+          try {
+            oos.writeObject(crypto.encrypt(comp.compress(t.getByteArray()), s.secKey));
+          }
+          catch (IOException ex) {
+            DispAlert.alertException(ex);
+          }catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+      groups.remove(t.getOldGroup().getGroupName()); // remove old group 
+      groups.put(t.getNewGroup().getGroupName(),t.getNewGroup()); // insert the new one
+    }
     /**
      * Sends the client all of the active groups
      * @param s the person to send to
@@ -302,11 +320,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             try {
               if (typing) {
                 oos.writeObject(crypto.encrypt(
-                  comp.compress(new Transaction(sender,"TYPING").getByteArray()), s.secKey));
+                  comp.compress(new Transaction(sender,"TYPING","","Main").getByteArray()), s.secKey));
               }
               else if (!typing) {
                 oos.writeObject(crypto.encrypt(
-                  comp.compress(new Transaction(sender,"NOT_TYPING").getByteArray()), s.secKey));
+                  comp.compress(new Transaction(sender,"NOT_TYPING","","Main").getByteArray()), s.secKey));
               }
             }
             
@@ -376,6 +394,34 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       }
       if (!found) {
         writeText("Direct message request to unkown recipient: "+recipient);
+      }
+    }
+
+    public void sendTypingGroup(Transaction t, boolean typing) {
+      if (groups.containsKey(t.getRecipient())) {
+        Group g = groups.get(t.getRecipient());
+        for (String s : g.getGroupMembers()) {
+          for (SocketHandler sh : activeClients) {
+            if (s.equals(sh.getClientName()) && !sh.getClientName().equals(t.getClientName())) {
+              ObjectOutputStream oos = sh.getOutputStream();
+              try {
+                if (typing) {
+                  oos.writeObject(crypto.encrypt(
+                    comp.compress(
+                      new Transaction(t.getClientName(),"TYPING","",t.getRecipient()).getByteArray()), sh.secKey));
+                }
+                else {
+                  oos.writeObject(crypto.encrypt(
+                    comp.compress(
+                      new Transaction(t.getClientName(),"NOT_TYPING","",t.getRecipient()).getByteArray()), sh.secKey));
+                }
+              }
+              catch (Exception ex) {
+                DispAlert.alertException(ex);
+              }
+            }
+          }
+        }
       }
     }
     /**
@@ -484,6 +530,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),true);
                   }
+                  else if (groups.keySet().contains(t.getRecipient())) {
+                    sendTypingGroup(t,true);
+                  }
                   else {
                     sendDirectTyping(t.getClientName(),t.getRecipient(),true);
                   }
@@ -491,6 +540,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                 case "NOT_TYPING":
                   if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),false);
+                  }
+                  else if (groups.keySet().contains(t.getRecipient())) {
+                    sendTypingGroup(t,false);
                   }
                   else {
                     sendDirectTyping(t.getClientName(),t.getRecipient(),false);
@@ -509,6 +561,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                       comp.compress(
                         new Transaction(clientName, "GROUP_NAME_IN_USE", t.getGroup().getGroupName()).getByteArray()), secKey));
                   }
+                  break;
+                case "GROUP_EDIT":
+                  editGroup(t);
                   break;
                 case "GROUP_MESSAGE":
                   sendToGroup(t.getClientName(), t.getGroup(), t.getMessage());

@@ -68,7 +68,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
   private Label typingLbl = new Label("");
-  
 
   private TabPane tabPane = new TabPane();
 
@@ -85,6 +84,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private MenuItem miSave = new MenuItem("Save File");
   private MenuItem miUpload = new MenuItem("Upload File");
   private MenuItem miCreateGroup = new MenuItem("Create A Group");
+  private MenuItem miEditGroup = new MenuItem("Edit Group");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   private HashMap<String,Group> groups = new HashMap<String,Group>();
@@ -127,7 +127,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //menu items
     mBar.getMenus().addAll(mnuFile, menu);
-    menu.getItems().addAll(miGenKey,miCreateGroup);
+    menu.getItems().addAll(miGenKey,miCreateGroup,miEditGroup);
     mnuFile.getItems().addAll(miUpload, miSave);
     miSave.setOnAction(this);
     miUpload.setOnAction(this);
@@ -147,6 +147,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
+    miEditGroup.setOnAction(this);
     
 
 
@@ -247,6 +248,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             break;
           case "Send":
             send(tField.getText());
+            tField.clear();
             break;
           case "Generate Key":
             generateKey();
@@ -269,7 +271,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         case "Create A Group":
           createGroup();
           break;
-
+        case "Edit Group":
+          editGroup();
+          break;
       }
     }
   }//end EventHandler
@@ -412,6 +416,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public void createGroup() {
     GroupCreatePopup gp = new GroupCreatePopup(activeClients);
     Group group = gp.getGroup();
+    group.addMember(name); // adds self to group
     if (group != null) {
       try {
         oos.writeObject(crypto.encrypt(
@@ -422,6 +427,29 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       catch (Exception ex) {
         DispAlert.alertException(ex);
       }
+    }
+  }
+  public void editGroup() {
+    if (groups.keySet().contains(tabPane.getSelectionModel().getSelectedItem().getText())) {
+      Group oldGroup = groups.get(tabPane.getSelectionModel().getSelectedItem().getText());
+      GroupEditPopup gep = new GroupEditPopup(activeClients, oldGroup);
+      Group newGroup = gep.getGroup();
+      newGroup.addMember(name); // automatically add self to group
+      if (newGroup != null) {
+        groups.remove(oldGroup.getGroupName());
+        groups.put(newGroup.getGroupName(),newGroup);
+        try {
+          oos.writeObject(crypto.encrypt(
+            comp.compress(  
+              new Transaction(name,"GROUP_EDIT",oldGroup,newGroup).getByteArray()),secKey));
+        }
+        catch (Exception ex) {
+          DispAlert.alertException(ex);
+        }
+      }
+    }
+    else {
+      DispAlert.alertInfo("Current tab is not a valid group");
     }
   }
   /**
@@ -444,23 +472,23 @@ public class Main extends Application implements EventHandler<ActionEvent> {
          });
         }
     Tab t = tabs.get(tabName);
-      if (!t.isSelected() && !s.equals("")) { //tab 
-      t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
-         t.setOnSelectionChanged(new EventHandler<Event>() {
-            public void handle(Event evt) {
-               Tab selectedTab = (Tab)evt.getSource(); 
-               if (selectedTab.isSelected()) {
-                  System.out.print(selectedTab.getText());
-                  t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
-               }
-            }
-         });
+    if (!t.isSelected() && !s.equals("")) { //tab 
+    t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
+        t.setOnSelectionChanged(new EventHandler<Event>() {
+          public void handle(Event evt) {
+              Tab selectedTab = (Tab)evt.getSource(); 
+              if (selectedTab.isSelected()) {
+                System.out.print(selectedTab.getText());
+                t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
+              }
+          }
+        });
       }
 
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
     ta.setEditable(false);
+    ta.setWrapText(true);
     ta.appendText(s+"\n");
-    // taChat.appendText(s+"\n");
     
   }
 
@@ -540,6 +568,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     });
   }
+
+  public void processNewGroup(Group g) {
+    groups.put(g.getGroupName(),g);
+    if (g.getGroupMembers().contains(name)) {
+      writeText("", g.getGroupName());
+    }
+  }
   /**
      * This is the main method for processing incoming data
      * It first processes data in this order:
@@ -588,13 +623,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 DispAlert.alertInfo("Successfully created group: " + t.getMessage());
                 break;
               case "TYPING":
-                chatHandler.setActiveTyping(t.getClientName());
+                chatHandler.setActiveTyping(t.getClientName(),t.getRecipient());
                 break;
               case "NOT_TYPING":
-                chatHandler.setInactiveTyping();
+                chatHandler.setInactiveTyping(t.getClientName());
                 break;
               case "NEW_GROUP":
                 groups.put(t.getGroup().getGroupName(),t.getGroup());
+                processNewGroup(t.getGroup());
+                break;
+              case "GROUP_EDIT":
+                groups.remove(t.getOldGroup().getGroupName());
+                groups.put(t.getNewGroup().getGroupName(), t.getNewGroup());
+                if (t.getNewGroup().getGroupMembers().contains(name)) {
+                  if (t.getOldGroup().getGroupName().equals(t.getNewGroup().getGroupName())) {
+                    writeText("Group members updated", t.getNewGroup().getGroupName());
+                  }
+                  else {
+                    for (Tab tab : tabPane.getTabs()) {
+                      if (tab.getText().equals(t.getOldGroup().getGroupName())) {
+                        tab.setText(t.getNewGroup().getGroupName());
+                      }
+                    }
+                  }
+                }
+                else {
+                  writeText("You have been removed from the group",t.getNewGroup().getGroupName());
+                }
                 break;
               case "GROUP_MESSAGE":
                 writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());
@@ -730,6 +785,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           miSave.setDisable(false);
           fileEditUser.setText("Edited by: " + t.getClientName());
           taFileView.setText(fileString);
+          taFileView.setEditable(true);
           prevFileData = fileString;
       }});
     }
@@ -743,6 +799,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     private int cooldown = 2000; // amount of time after typing a key that 
                                   // it takes before the client is no longer considered typing
     private Timer timer;
+    // private Tab tabSelection;
     /**
      * Handles a key being typed in the chat text field
      * It starts a timer for 2 seconds and if the timer expires
@@ -798,23 +855,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
      * displayed in the typingLbl
      * @param clientName
     */
-    public void setActiveTyping(String clientName) {
-      Platform.runLater(new Runnable() {
-        public void run() {
-          typingLbl.setText(clientName + " is typing ...");
-        }
-      });
+    public void setActiveTyping(String clientName, String recipient) {
+      if (tabPane.getSelectionModel().getSelectedItem().getText().equals(recipient)) {
+        Platform.runLater(new Runnable() {
+          public void run() {
+            typingLbl.setText(clientName + " is typing ...");
+          }
+        });
+      }
     }
     /**
      * Sets the typingLbl back to blank to indicate
      * that no one is typing
     */
-    public void setInactiveTyping() {
-      Platform.runLater(new Runnable() {
-        public void run() {
-          typingLbl.setText("");
-        }
-      });
-    }
+    public void setInactiveTyping(String clientName) {
+      // if (tabPane.getSelectionModel().getSelectedItem().getText().equals(clientName)) {
+        Platform.runLater(new Runnable() {
+          public void run() {
+            typingLbl.setText("");
+          }
+        });
+      }
+    // }
   }    
 }	

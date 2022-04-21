@@ -32,4 +32,7 @@ public class Group implements Serializable {
     public ArrayList<String> getGroupMembers() {
         return groupMembers;
     }
+    public void addMember(String member) {
+        groupMembers.add(member);
+    }
 }
