@@ -85,6 +85,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private MenuItem miSave = new MenuItem("Save File");
   private MenuItem miUpload = new MenuItem("Upload File");
   private MenuItem miCreateGroup = new MenuItem("Create A Group");
+  private MenuItem miEditGroup = new MenuItem("Edit Group");
   
   private ArrayList<String> activeClients = new ArrayList<String>();
   private HashMap<String,Group> groups = new HashMap<String,Group>();
@@ -127,7 +128,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     //menu items
     mBar.getMenus().addAll(mnuFile, menu);
-    menu.getItems().addAll(miGenKey,miCreateGroup);
+    menu.getItems().addAll(miGenKey,miCreateGroup,miEditGroup);
     mnuFile.getItems().addAll(miUpload, miSave);
     miSave.setOnAction(this);
     miUpload.setOnAction(this);
@@ -147,6 +148,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       
     miGenKey.setOnAction(this);
     miCreateGroup.setOnAction(this);
+    miEditGroup.setOnAction(this);
     
 
 
@@ -247,6 +249,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             break;
           case "Send":
             send(tField.getText());
+            tField.clear();
             break;
           case "Generate Key":
             generateKey();
@@ -269,7 +272,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         case "Create A Group":
           createGroup();
           break;
-
+        case "Edit Group":
+          editGroup();
+          break;
       }
     }
   }//end EventHandler
@@ -425,6 +430,29 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
   }
+  public void editGroup() {
+    if (groups.keySet().contains(tabPane.getSelectionModel().getSelectedItem().getText())) {
+      Group oldGroup = groups.get(tabPane.getSelectionModel().getSelectedItem().getText());
+      GroupEditPopup gep = new GroupEditPopup(activeClients, oldGroup);
+      Group newGroup = gep.getGroup();
+      newGroup.addMember(name); // automatically add self to group
+      if (newGroup != null) {
+        groups.remove(oldGroup.getGroupName());
+        groups.put(newGroup.getGroupName(),newGroup);
+        try {
+          oos.writeObject(crypto.encrypt(
+            comp.compress(  
+              new Transaction(name,"GROUP_EDIT",oldGroup,newGroup).getByteArray()),secKey));
+        }
+        catch (Exception ex) {
+          DispAlert.alertException(ex);
+        }
+      }
+    }
+    else {
+      DispAlert.alertInfo("Current tab is not a valid group");
+    }
+  }
   /**
    * Simplifies writing text to the chat area. 
    * It allows you to specify the tab name and if it
@@ -544,7 +572,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   public void processNewGroup(Group g) {
     groups.put(g.getGroupName(),g);
-    writeText("", g.getGroupName());
+    if (g.getGroupMembers().contains(name)) {
+      writeText("", g.getGroupName());
+    }
   }
   /**
      * This is the main method for processing incoming data
@@ -602,6 +632,25 @@ public class Main extends Application implements EventHandler<ActionEvent> {
               case "NEW_GROUP":
                 groups.put(t.getGroup().getGroupName(),t.getGroup());
                 processNewGroup(t.getGroup());
+                break;
+              case "GROUP_EDIT":
+                groups.remove(t.getOldGroup().getGroupName());
+                groups.put(t.getNewGroup().getGroupName(), t.getNewGroup());
+                if (t.getNewGroup().getGroupMembers().contains(name)) {
+                  if (t.getOldGroup().getGroupName().equals(t.getNewGroup().getGroupName())) {
+                    writeText("Group members updated", t.getNewGroup().getGroupName());
+                  }
+                  else {
+                    for (Tab tab : tabPane.getTabs()) {
+                      if (tab.getText().equals(t.getOldGroup().getGroupName())) {
+                        tab.setText(t.getNewGroup().getGroupName());
+                      }
+                    }
+                  }
+                }
+                else {
+                  writeText("You have been removed from the group",t.getNewGroup().getGroupName());
+                }
                 break;
               case "GROUP_MESSAGE":
                 writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());

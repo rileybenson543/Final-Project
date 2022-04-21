@@ -18,6 +18,8 @@ public class Transaction implements Serializable {
     private String command;
     private String message;
     private Group group;
+    private Group oldGroup;
+    private Group newGroup;
     private ArrayList<String> data;
     private HashMap<String,Group> groups;
 
@@ -44,6 +46,19 @@ public class Transaction implements Serializable {
         recipient = _recipient;
     }
     /**
+     * Constructor for group updates
+     * @param _clientName
+     * @param _command
+     * @param _oldGroup
+     * @param _newGroup
+     */
+    public Transaction(String _clientName, String _command, Group _oldGroup, Group _newGroup) {
+        clientName = _clientName;
+        command = _command;
+        oldGroup = _oldGroup;
+        newGroup = _newGroup; 
+    }
+     /**
      * Constructor for messages to a group
      * @param _clientName
      * @param _command
@@ -147,11 +162,25 @@ public class Transaction implements Serializable {
         return groups;
     }
     /**
-     * Returns the Group objetc
+     * Returns the Group object
      * @return Group
      */
     public Group getGroup() {
         return group;
+    }
+    /**
+     * Returns the old Group object
+     * @return Group
+     */
+    public Group getOldGroup() {
+        return oldGroup;
+    }
+    /**
+     * Returns the new Group object
+     * @return Group
+     */
+    public Group getNewGroup() {
+        return newGroup;
     }
     /**
      * Converts transaction object to byte[]

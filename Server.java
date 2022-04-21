@@ -15,6 +15,7 @@ import java.io.*;
 import java.security.*;
 
 import javax.crypto.SecretKey;
+import javax.xml.namespace.QName;
 
 /**
  * Server class that facilitates client connections 
@@ -238,6 +239,24 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           e.printStackTrace();
         }
       }
+    }
+
+    public void editGroup(Transaction t) {
+      for (SocketHandler s : activeClients) {
+        if (!s.getClientName().equals(t.getClientName())) {
+          ObjectOutputStream oos = s.getOutputStream();
+          try {
+            oos.writeObject(crypto.encrypt(comp.compress(t.getByteArray()), s.secKey));
+          }
+          catch (IOException ex) {
+            DispAlert.alertException(ex);
+          }catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+      groups.remove(t.getOldGroup().getGroupName()); // remove old group 
+      groups.put(t.getNewGroup().getGroupName(),t.getNewGroup()); // insert the new one
     }
     /**
      * Sends the client all of the active groups
@@ -512,7 +531,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),true);
                   }
-                  if (groups.keySet().contains(t.getRecipient())) {
+                  else if (groups.keySet().contains(t.getRecipient())) {
                     sendTypingGroup(t,true);
                   }
                   else {
@@ -523,7 +542,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                   if (t.getRecipient().equals("Main")) {
                     broadcastTyping(t.getClientName(),false);
                   }
-                  if (groups.keySet().contains(t.getRecipient())) {
+                  else if (groups.keySet().contains(t.getRecipient())) {
                     sendTypingGroup(t,false);
                   }
                   else {
@@ -543,6 +562,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                       comp.compress(
                         new Transaction(clientName, "GROUP_NAME_IN_USE", t.getGroup().getGroupName()).getByteArray()), secKey));
                   }
+                  break;
+                case "GROUP_EDIT":
+                  editGroup(t);
                   break;
                 case "GROUP_MESSAGE":
                   sendToGroup(t.getClientName(), t.getGroup(), t.getMessage());
