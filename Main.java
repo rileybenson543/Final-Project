@@ -68,7 +68,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private Label nameLbl = new Label("Name");
   private Label fileEditUser = new Label("");
   private Label typingLbl = new Label("");
-  
 
   private TabPane tabPane = new TabPane();
 
@@ -488,8 +487,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
     ta.setEditable(false);
+    ta.setWrapText(true);
     ta.appendText(s+"\n");
-    // taChat.appendText(s+"\n");
     
   }
 
@@ -786,6 +785,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
           miSave.setDisable(false);
           fileEditUser.setText("Edited by: " + t.getClientName());
           taFileView.setText(fileString);
+          taFileView.setEditable(true);
           prevFileData = fileString;
       }});
     }
