@@ -2,7 +2,6 @@
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.*;
 import javafx.event.*;
 import javafx.geometry.Pos;
 import javafx.scene.*;
@@ -10,15 +9,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.geometry.Side;
-import javafx.geometry.Insets;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Circle;
-import javafx.event.EventType;
 
 
 
@@ -30,12 +25,12 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.io.*;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.KeyCode;
 
 
 import java.security.*;
 import javax.crypto.SecretKey;
+import javax.swing.Action;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -340,24 +335,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void send(String dataToSend) {
     try {
       System.out.println("sending");
-      String time = "<"+ LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")).toString() + "> ";
+      String time = "<"+ LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")).toString() + "> ";
       String directMessageSelection = tabPane.getSelectionModel().getSelectedItem().getText();
       
       if (directMessageSelection.equals("Main")) { // over here
-        writeText(time + name + ": " + dataToSend, directMessageSelection);
+        writeText(time + "You" + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(
               nameInput.getText(),"BROADCAST",tField.getText()).getByteArray()), secKey));
       }
       else if (activeClients.contains(directMessageSelection)){
-        writeText(time + name + ": " + dataToSend, directMessageSelection);
+        writeText(time + "You" + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"DIRECT",tField.getText(),directMessageSelection).getByteArray()), secKey));
       }
       if (groups.keySet().contains(directMessageSelection)) {
-        writeText(time + name + ": " + dataToSend, directMessageSelection);
+        writeText(time + "You" + ": " + dataToSend, directMessageSelection);
         oos.writeObject(crypto.encrypt(
           comp.compress(
             new Transaction(nameInput.getText(),"GROUP_MESSAGE",tField.getText(),groups.get(directMessageSelection)).getByteArray()), secKey));
@@ -416,8 +411,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   public void createGroup() {
     GroupCreatePopup gp = new GroupCreatePopup(activeClients);
     Group group = gp.getGroup();
-    group.addMember(name); // adds self to group
     if (group != null) {
+      group.addMember(name); // adds self to group
       try {
         oos.writeObject(crypto.encrypt(
           comp.compress(
@@ -434,8 +429,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       Group oldGroup = groups.get(tabPane.getSelectionModel().getSelectedItem().getText());
       GroupEditPopup gep = new GroupEditPopup(activeClients, oldGroup);
       Group newGroup = gep.getGroup();
-      newGroup.addMember(name); // automatically add self to group
       if (newGroup != null) {
+        newGroup.addMember(name); // automatically add self to group
         groups.remove(oldGroup.getGroupName());
         groups.put(newGroup.getGroupName(),newGroup);
         try {
@@ -473,14 +468,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         }
     Tab t = tabs.get(tabName);
     if (!t.isSelected() && !s.equals("")) { //tab 
-    t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
-        t.setOnSelectionChanged(new EventHandler<Event>() {
-          public void handle(Event evt) {
-              Tab selectedTab = (Tab)evt.getSource(); 
-              if (selectedTab.isSelected()) {
-                System.out.print(selectedTab.getText());
-                t.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
-              }
+      t.setStyle("-fx-background-color:#e34236; -fx-border-radius:10;");
+      t.setOnSelectionChanged(new EventHandler<Event>() {
+        public void handle(Event evt) {
+            Tab selectedTab = (Tab)evt.getSource(); 
+            if (selectedTab.isSelected()) {
+              System.out.print(selectedTab.getText());
+              selectedTab.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
+            }
           }
         });
       }
@@ -571,7 +566,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
   public void processNewGroup(Group g) {
     groups.put(g.getGroupName(),g);
-    if (g.getGroupMembers().contains(name)) {
+    if (g.getGroupMembers().contains(name)) { // if the client is a member of the group
       writeText("", g.getGroupName());
     }
   }
@@ -601,10 +596,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
             switch (t.getCommand()) {
               case "BROADCAST":
-                writeText("<" + t.getClientName()+"> " + t.getMessage(),"Main");
+                  writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) .toString() +"> " + t .getClientName() + ": " + t.getMessage(),"Main");
                 break;
               case "DIRECT":
-                writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) .toString() +"> " +t .getClientName() + ": " + t.getMessage(),t.getClientName());
+                  writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) .toString() +"> " + t .getClientName() + ": " + t.getMessage(),t.getClientName());
                 break;
               case "CLIENTS":
                 processActiveClients(t.getData());
@@ -652,7 +647,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 }
                 break;
               case "GROUP_MESSAGE":
-                writeText("<" + t.getClientName() +"> " + t.getMessage(),t.getRecipient());
+                writeText("<" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")).toString() +"> " + t .getClientName() + ": " + t.getMessage(),t.getRecipient());
                 break;
             }
         }

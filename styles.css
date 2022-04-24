@@ -131,3 +131,14 @@ fx-background-color: #1e2124;
 .tab-pane .tab-header-area .tab .tab-label {
   -fx-text-fill: #f5f5f5;
 }
+
+
+/* Group Popups */
+
+#checkbox {
+  -fx-padding: 8;
+  -fx-font-size: 16;
+  -fx-text-fill: #f5f5f5;
+  -fx-background-color: #5a5e63;
+  -fx-background-radius: 4;
+}

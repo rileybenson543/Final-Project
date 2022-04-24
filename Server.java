@@ -3,6 +3,7 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.*;
+import javafx.geometry.Insets;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -28,12 +29,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
   private VBox root = new VBox(8);
 
+  private BorderPane bpControlBar = new BorderPane();
+
   private Button btnReceive = new Button("Receive Connections");
   private Button btnGenerate = new Button("Generate Key");
 
   private TextArea tArea = new TextArea();
-
-  private TextField tField = new TextField();
 
   Socket socket;
 
@@ -58,7 +59,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     btnReceive.setOnAction(this);
     btnGenerate.setOnAction(this);
 
-    root.getChildren().addAll(btnReceive,btnGenerate,tField,tArea);
+    tArea.setPrefRowCount(50);
+    bpControlBar.setLeft(btnReceive);
+    bpControlBar.setRight(btnGenerate);
+    bpControlBar.setPadding(new Insets(16));
+
+    root.getChildren().addAll(bpControlBar,tArea);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
         public void handle(WindowEvent evt) {      
@@ -67,6 +73,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     });
 
     scene = new Scene(root, 600, 600); 
+    scene.getStylesheets().add
+    (Main.class.getResource("styles.css").toExternalForm());
                                         
     stage.setScene(scene);              
     stage.show();

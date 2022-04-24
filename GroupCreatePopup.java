@@ -2,6 +2,7 @@ import java.util.ArrayList;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -12,6 +13,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -33,13 +35,18 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
      */
     public GroupCreatePopup(ArrayList<String> activeClients) {
         BorderPane bp = new BorderPane();
-        VBox checkBoxVBox = new VBox();
+        bp.setId("bp");
+        VBox checkBoxVBox = new VBox(8);
+        checkBoxVBox.setId("checkBoxVBox");
 
         for (String s : activeClients) {
             CheckBox cb = new CheckBox(s);
+            cb.setPrefWidth(250);
+            cb.setId("checkbox");
             checkBoxes.add(cb);
             checkBoxVBox.getChildren().add(cb);
         }
+        checkBoxVBox.setAlignment(Pos.CENTER);
         bp.setCenter(checkBoxVBox);
 
         FlowPane fp = new FlowPane(8,8);
@@ -52,10 +59,14 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
         bp.setBottom(fp);
         
         if (activeClients.isEmpty()) {
-            bp.setCenter(new Text("No Clients To Add"));
+            Text text = new Text("No Clients To Add");
+            text.setFill(Color.WHITE);
+            bp.setCenter(text);
         }
 
         Scene scene = new Scene(bp,400,400);
+        scene.getStylesheets().add
+            (Main.class.getResource("styles.css").toExternalForm());
         stage.setScene(scene);
         stage.setOnCloseRequest(
             new EventHandler<WindowEvent>() {

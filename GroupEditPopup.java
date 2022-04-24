@@ -37,6 +37,7 @@ public class GroupEditPopup implements EventHandler<ActionEvent> {
 
         for (String s : activeClients) {
             CheckBox cb = new CheckBox(s);
+            cb.setId("checkbox");
             
             if (g.getGroupMembers().contains(s)) {
                 cb.setSelected(true);
@@ -62,6 +63,8 @@ public class GroupEditPopup implements EventHandler<ActionEvent> {
         }
 
         Scene scene = new Scene(bp,400,400);
+        scene.getStylesheets().add
+            (Main.class.getResource("styles.css").toExternalForm());
         stage.setScene(scene);
         stage.setOnCloseRequest(
             new EventHandler<WindowEvent>() {
