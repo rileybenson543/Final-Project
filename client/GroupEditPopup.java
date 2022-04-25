@@ -1,8 +1,9 @@
+package client;
 import java.util.ArrayList;
 
+import common.Group;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -13,7 +14,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -22,7 +22,7 @@ import javafx.stage.WindowEvent;
  * It is given the ArrayList of the active clients for the gui
  * and returns a group object
  */
-public class GroupCreatePopup implements EventHandler<ActionEvent> {
+public class GroupEditPopup implements EventHandler<ActionEvent> {
 
     private Stage stage = new Stage();
     private ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
@@ -33,40 +33,40 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
      * displays it
      * @param activeClients
      */
-    public GroupCreatePopup(ArrayList<String> activeClients) {
+    public GroupEditPopup(ArrayList<String> activeClients, Group g) {
         BorderPane bp = new BorderPane();
-        bp.setId("bp");
-        VBox checkBoxVBox = new VBox(8);
-        checkBoxVBox.setId("checkBoxVBox");
+        VBox checkBoxVBox = new VBox();
 
         for (String s : activeClients) {
             CheckBox cb = new CheckBox(s);
-            cb.setPrefWidth(250);
             cb.setId("checkbox");
+            
+            if (g.getGroupMembers().contains(s)) {
+                cb.setSelected(true);
+            }
             checkBoxes.add(cb);
             checkBoxVBox.getChildren().add(cb);
         }
-        checkBoxVBox.setAlignment(Pos.CENTER);
         bp.setCenter(checkBoxVBox);
 
         FlowPane fp = new FlowPane(8,8);
         Label groupNameLbl = new Label ("Group Name");
+        tfGroupName.setText(g.getGroupName());
+
         
-        Button createBtn = new Button("Create Group");
+        Button createBtn = new Button("Save Group");
         createBtn.setOnAction(this);
         fp.getChildren().addAll(groupNameLbl,tfGroupName,createBtn);
         fp.setAlignment(Pos.CENTER);
         bp.setBottom(fp);
         
         if (activeClients.isEmpty()) {
-            Text text = new Text("No Clients To Add");
-            text.setFill(Color.WHITE);
-            bp.setCenter(text);
+            bp.setCenter(new Text("No Clients To Add"));
         }
 
         Scene scene = new Scene(bp,400,400);
         scene.getStylesheets().add
-            (Main.class.getResource("styles.css").toExternalForm());
+            (GroupEditPopup.class.getResource("../styles.css").toExternalForm());
         stage.setScene(scene);
         stage.setOnCloseRequest(
             new EventHandler<WindowEvent>() {

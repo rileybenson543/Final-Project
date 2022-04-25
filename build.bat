@@ -1,5 +1,15 @@
-javac -d ./.class --class-path=./.class --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls Transaction.java
-javac -d ./.class --class-path=./.class --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls Crypto.java
-javac -d ./.class --class-path=./.class --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls Main.java
-javac -d ./.class --class-path=./.class --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls Server.java
-javac -d ./.class --class-path=./.class --module-path "C:\Users\rdbas\Java Libraries\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls DispAlert.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls common/Transaction.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls common/Group.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls common/Crypto.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls common/Compression.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls common/DispAlert.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls client/Main.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls server/Server.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls client/GroupCreatePopup.java
+javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls client/GroupEditPopup.java
+cd ./
+copy './common/styles.css' '.class/client/styles.css'
+copy './common/styles.css' '.class/server/styles.css'
+cd .class
+jar -cvef client.Main client.jar common client
+jar -cvef server.Server server.jar common server

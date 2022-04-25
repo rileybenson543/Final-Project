@@ -1,3 +1,4 @@
+package server;
 //@ver 2.2.1
 
 import javafx.application.Application;
@@ -16,6 +17,12 @@ import java.io.*;
 import java.security.*;
 
 import javax.crypto.SecretKey;
+
+import common.Compression;
+import common.Crypto;
+import common.DispAlert;
+import common.Group;
+import common.Transaction;
 
 /**
  * Server class that facilitates client connections 
@@ -74,7 +81,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
     scene = new Scene(root, 600, 600); 
     scene.getStylesheets().add
-    (Main.class.getResource("styles.css").toExternalForm());
+    (Server.class.getResource("styles.css").toExternalForm());
                                         
     stage.setScene(scene);              
     stage.show();

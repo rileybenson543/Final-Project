@@ -1,3 +1,4 @@
+package client;
 //@ver 2.2.1
 
 import javafx.application.Application;
@@ -30,10 +31,16 @@ import javafx.scene.input.KeyCode;
 
 import java.security.*;
 import javax.crypto.SecretKey;
-import javax.swing.Action;
+
+import common.Compression;
+import common.Crypto;
+import common.DispAlert;
+import common.Group;
+import common.Transaction;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+
 
 
 /**

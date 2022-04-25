@@ -1,3 +1,4 @@
+package common;
 import java.io.ByteArrayOutputStream;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterOutputStream;

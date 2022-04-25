@@ -8,7 +8,7 @@
             "type": "java",
             "name": "Launch Server",
             "request": "launch",
-            "mainClass": "Server",
+            "mainClass": "server.Server",
             "projectName": "Final Project_df028816",
             "vmArgs": "--module-path \"C:/Users/rdbas/Java Libraries/javafx-sdk-11.0.2/lib\" --add-modules javafx.controls"
         },
@@ -16,7 +16,7 @@
             "type": "java",
             "name": "Launch Main",
             "request": "launch",
-            "mainClass": "Main",
+            "mainClass": "client.Main",
             "projectName": "Final Project_df028816",
             "vmArgs": "--module-path \"C:/Users/rdbas/Java Libraries/javafx-sdk-11.0.2/lib\" --add-modules javafx.controls"
         },
