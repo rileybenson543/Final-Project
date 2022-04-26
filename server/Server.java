@@ -81,7 +81,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
 
     scene = new Scene(root, 600, 600); 
     scene.getStylesheets().add
-    (Server.class.getResource("styles.css").toExternalForm());
+    (Server.class.getResource("/common/styles.css").toExternalForm());
                                         
     stage.setScene(scene);              
     stage.show();

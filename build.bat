@@ -7,9 +7,6 @@ javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" 
 javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls server/Server.java
 javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls client/GroupCreatePopup.java
 javac -d ./.class --class-path=./.class --module-path ".\javafx-sdk-11.0.2\lib" --add-modules=javafx.controls client/GroupEditPopup.java
-cd ./
-copy './common/styles.css' '.class/client/styles.css'
-copy './common/styles.css' '.class/server/styles.css'
 cd .class
-jar -cvef client.Main client.jar common client
-jar -cvef server.Server server.jar common server
+jar -cvef client.Main client.jar common client ../common/styles.css
+jar -cvef server.Server server.jar common server ../common/styles.css

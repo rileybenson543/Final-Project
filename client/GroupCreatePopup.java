@@ -68,7 +68,7 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
 
         Scene scene = new Scene(bp,400,400);
         scene.getStylesheets().add
-            (GroupCreatePopup.class.getResource("../styles.css").toExternalForm());
+            (GroupCreatePopup.class.getResource("/common/styles.css").toExternalForm());
         stage.setScene(scene);
         stage.setOnCloseRequest(
             new EventHandler<WindowEvent>() {
