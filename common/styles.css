@@ -90,10 +90,49 @@ fx-background-color: #1e2124;
       -fx-background-color: #36393e;
   }
 
+  .text-area .scroll-bar:horizontal,
+  .text-area .scroll-bar:vertical {
+    -fx-background-color: #1e2124;
+    -fx-background-radius: 10;
+    -fx-margin: 0 0 10 0;
+  }
 
 
+.text-area .scroll-bar:horizontal .track,
+.text-area .scroll-bar:vertical .track {
+  -fx-background-color: #1e2124;
+  -fx-background-radius: 10;
 
+}
 
+.text-area .scroll-bar:horizontal .thumb,
+.text-area .scroll-bar:vertical .thumb {
+  -fx-background-color: #282b30;
+  -fx-background-radius: 10;
+}
+
+.text-area .scroll-bar:vertical .increment-button,
+.text-area .scroll-bar:vertical .decrement-button {
+  -fx-background-color:#36393e;
+  -fx-background-radius: 0em;
+  -fx-padding: 0 0 0 0;
+  -fx-background-insets: 0 0 0 0, 0 0 0 0, 0 0 0 0;
+}
+.text-area .scroll-bar:horizontal .increment-button,
+.text-area .scroll-bar:horizontal .decrement-button {
+  -fx-background-color:#36393e;
+}
+.text-area .scroll-bar:horizontal .increment-arrow,
+.text-area .scroll-bar:horizontal .decrement-arrow {
+  -fx-background-color:#36393e;
+}
+.text-area .scroll-bar:vertical .increment-arrow,
+.text-area .scroll-bar:vertical .decrement-arrow {
+  -fx-background-color:#36393e;
+  -fx-background-radius: 0em;
+  -fx-padding: 0 0 0 0;
+  -fx-background-insets: 0 0 0 0, 0 0 0 0, 0 0 0 0;
+}
 
 .region .pane .border-pane{
   -fx-background-color:#36393e;
