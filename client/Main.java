@@ -216,7 +216,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
    //css
     scene.getStylesheets().add
-      (Main.class.getResource("styles.css").toExternalForm());
+      (Main.class.getResource("../common/styles.css").toExternalForm());
     tField.setId("chat-field");
     fpActiveClients.setId("flow-pane-clients");
     
@@ -490,6 +490,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     TextArea ta = (TextArea)tabs.get(tabName).getContent();
     ta.setEditable(false);
     ta.setWrapText(true);
+    taFileView.setWrap(true);
     ta.appendText(s+"\n");
     
   }
