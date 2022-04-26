@@ -216,7 +216,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
    //css
     scene.getStylesheets().add
-      (Main.class.getResource("styles.css").toExternalForm());
+      (Main.class.getResource("../common/styles.css").toExternalForm());
     tField.setId("chat-field");
     fpActiveClients.setId("flow-pane-clients");
     
