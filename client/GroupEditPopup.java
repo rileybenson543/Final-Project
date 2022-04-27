@@ -1,6 +1,7 @@
 package client;
 import java.util.ArrayList;
 
+
 import common.Group;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -35,10 +36,11 @@ public class GroupEditPopup implements EventHandler<ActionEvent> {
      */
     public GroupEditPopup(ArrayList<String> activeClients, Group g) {
         BorderPane bp = new BorderPane();
-        VBox checkBoxVBox = new VBox();
+        VBox checkBoxVBox = new VBox(8);
 
         for (String s : activeClients) {
             CheckBox cb = new CheckBox(s);
+            cb.setPrefWidth(250);
             cb.setId("checkbox");
             
             if (g.getGroupMembers().contains(s)) {
@@ -47,6 +49,7 @@ public class GroupEditPopup implements EventHandler<ActionEvent> {
             checkBoxes.add(cb);
             checkBoxVBox.getChildren().add(cb);
         }
+        checkBoxVBox.setAlignment(Pos.CENTER);
         bp.setCenter(checkBoxVBox);
 
         FlowPane fp = new FlowPane(8,8);

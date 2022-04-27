@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import common.Group;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -37,7 +36,6 @@ public class GroupCreatePopup implements EventHandler<ActionEvent> {
      */
     public GroupCreatePopup(ArrayList<String> activeClients) {
         BorderPane bp = new BorderPane();
-        bp.setId("bp");
         VBox checkBoxVBox = new VBox(8);
         checkBoxVBox.setId("checkBoxVBox");
 

@@ -173,6 +173,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             socketHandler.start();
         }
       }
+      catch (SocketException ex) {
+        writeText("Closed Connections");
+      }
       catch (Exception ex) {
         DispAlert.alertException(ex);
       }
@@ -191,7 +194,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         }
         activeClients.clear();
       }
-      catch (Exception ex) {
+      catch (IOException ex) {
         DispAlert.alertException(ex);
       }
     }
