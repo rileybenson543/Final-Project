@@ -166,17 +166,15 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       try {
         ss = new ServerSocket(12345);
         currentThread().setName("ServerHandler");
+        writeText("Ready for connections");
         while(active) {
-            System.out.println("waiting for connection");
             Socket s = ss.accept();
-            System.out.println("Accepted connection from "+s.getInetAddress().getHostName());
             SocketHandler socketHandler = new SocketHandler(s);
             socketHandler.start();
-            //activeClients.add(socketHandler);
         }
       }
       catch (Exception ex) {
-        System.out.println("Socket Closed");
+        DispAlert.alertException(ex);
       }
     }
     /**
@@ -191,7 +189,6 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         for (SocketHandler s : activeClients) {
             s.setInactive();
         }
-        System.out.println("shutdown");
         activeClients.clear();
       }
       catch (Exception ex) {
@@ -213,7 +210,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
     public void setInactiveSocketHandler(SocketHandler _s) {
       activeClients.remove(_s);
       sendActiveClients();
-      System.out.println(_s.getClientName()+" Disconnected");
+      writeText(_s.getClientName()+" Disconnected");
     }
     /**
      * Sends all the clients an ArrayList<String>
@@ -600,10 +597,18 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             DispAlert.alertException(ex);
           }
         }
+        catch (SocketException ex) {
+          try {
+            s.close();
+            setInactiveSocketHandler(this);
+          }
+          catch (IOException io) {
+            DispAlert.alertException(ex);
+          }
+        }
         catch (Exception ex) {
           DispAlert.alertException(ex);
         }
-          // if (!active) {System.out.println("inactive");}
       }
       
       public void doKeyExchange() {

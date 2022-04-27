@@ -341,7 +341,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
    */
   private void send(String dataToSend) {
     try {
-      System.out.println("sending");
       String time = "<"+ LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")).toString() + "> ";
       String directMessageSelection = tabPane.getSelectionModel().getSelectedItem().getText();
       
@@ -480,7 +479,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         public void handle(Event evt) {
             Tab selectedTab = (Tab)evt.getSource(); 
             if (selectedTab.isSelected()) {
-              System.out.print(selectedTab.getText());
               selectedTab.setStyle("-fx-background-color:#424549;-fx-border-radius:10;");
             }
           }
