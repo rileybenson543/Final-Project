@@ -15,7 +15,7 @@ import javafx.stage.*;
 import javafx.geometry.Side;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Circle;
-
+import javafx.geometry.Insets;
 
 
 import java.net.*;
@@ -185,21 +185,28 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     
     fpActiveClients.setPrefWidth(200);
     fpChat.setAlignment(Pos.CENTER);
+    fpChat.setPrefWidth(taFileView.getWidth());
     
+    typingLbl.setAlignment(Pos.BASELINE_LEFT);
+    fileEditUser.setMinWidth(100);
     
 
     //t1.setClosable(arg0);
     tField.setPrefColumnCount(25);
-    
+
 
     //add to flowpanes
     fpFileView.setAlignment(Pos.CENTER_RIGHT);
     fpRegister.getChildren().addAll(btnConnect,nameLbl,nameInput, new Label("Server IP "), serverInput);
-    fpChat.getChildren().addAll(typingLbl,tField,btnSend);
+    FlowPane fpTyping = new FlowPane(typingLbl);
+    fpTyping.setPrefWidth(150);
+    fpTyping.setAlignment(Pos.BASELINE_LEFT);
+    fpChat.getChildren().addAll(fpTyping,tField,btnSend,fileEditUser);
+    fileEditUser.setAlignment(Pos.BASELINE_RIGHT);
     root.getChildren().addAll(bPane);
     
     fpRegister.setAlignment(Pos.CENTER);
-    stage.setMinWidth(1000);
+    stage.setMinWidth(1100);
     stage.setMinHeight(600);
 
     fpFileView.setStyle("-fx-background-color: #1e2124");
@@ -291,7 +298,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   private void connect() {
     generateKey();
     name = nameInput.getText();
-    if (!name.isEmpty()) {
+    
+    if (!name.isEmpty() && !(name.length() > 20)) {
       try {
         socket = new Socket(serverInput.getText(),12345);
         oos = new ObjectOutputStream(socket.getOutputStream());
@@ -310,7 +318,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       }
     }
     else {
-      writeText("Please enter a name and try again","Main");
+      writeText("Name must be between 1 and 20 characters\n","Main");
     }
   }
    /**
@@ -371,6 +379,31 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     }
   }
   
+  /*
+  *Returns a shorter version of a clients
+  *for formatting purposes
+  */
+  
+  private String shorten(String _clientName) {
+        String clientName;
+        if (_clientName.length() > 10  && !_clientName.contains(" ")) {
+            clientName = _clientName.substring(0,10);
+        }
+        else if (_clientName.contains(" ") && _clientName.length() > 10){
+            String[] temp = _clientName.split(" ");
+            clientName = temp[0].substring(0,10) + " " + ( temp[1].substring(0,1).toUpperCase());
+        }
+        
+        else if (_clientName.contains(" ")){
+            String[] temp = _clientName.split(" ");
+            clientName = temp[0].substring(0,temp[0].length()) + " " + ( temp[1].substring(0,1).toUpperCase());
+        }
+        else {
+            clientName = _clientName;
+        }
+        return clientName;
+  }
+  
    /**
    * This method uses the Crypto class to create
    * its own public key, private key and symmetric
@@ -394,8 +427,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
    */
   private void doKeyExchange() {
       //get public key from server
-     try {
-        String clientName = nameInput.getText();
+     try {  
+     String clientName = nameInput.getText();  
         serverPubKey = (PublicKey)ois.readObject();
         
         byte[] encryptedKey = crypto.encryptKey(serverPubKey);//encrypt symmetric key
@@ -501,9 +534,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       //@param _clientName - name of client pane belongs to
 
       public ClientGraphic(String _clientName) {
-        clientName = _clientName;
-        
-        this.setMaxWidth(150);
+        String origClientName = _clientName;
+        String clientName = shorten(_clientName);
+      
+
+        this.setMaxWidth(200);
         this.setHgap(10);
         
         this.getChildren().addAll(new Circle(18, Color.color(Math.random(), Math.random(), Math.random())), new Label(clientName));
@@ -512,7 +547,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         this.setOnMouseClicked(new EventHandler<MouseEvent>() { 
             public void handle(MouseEvent mevt) {
                if(!clientName.equals("You")) {
-                  writeText("",clientName);
+                  writeText("",origClientName);
                }
             }
          });
@@ -860,7 +895,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
       if (tabPane.getSelectionModel().getSelectedItem().getText().equals(recipient)) {
         Platform.runLater(new Runnable() {
           public void run() {
-            typingLbl.setText(clientName + " is typing ...");
+            typingLbl.setText(shorten(clientName) + " is typing ...");
           }
         });
       }
