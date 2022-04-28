@@ -166,7 +166,7 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       try {
         ss = new ServerSocket(12345);
         currentThread().setName("ServerHandler");
-        writeText("Ready for connections");
+        writeText("Ready for connections at " + InetAddress.getLocalHost());
         while(active) {
             Socket s = ss.accept();
             SocketHandler socketHandler = new SocketHandler(s);
@@ -229,10 +229,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         try {
           oos.writeObject(crypto.encrypt(comp.compress(new Transaction(s.getName(), "CLIENTS", activeClientsStrings).getByteArray()), s.secKey));
         }
-        catch (IOException ex) {
+        catch (Exception ex) {
           DispAlert.alertException(ex);
-        }catch (Exception e) {
-          e.printStackTrace();
         }
       }
     }
@@ -247,14 +245,16 @@ public class Server extends Application implements EventHandler<ActionEvent> {
         try {
           oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", g).getByteArray()), s.secKey));
         }
-        catch (IOException ex) {
+        catch (Exception ex) {
           DispAlert.alertException(ex);
-        }catch (Exception e) {
-          e.printStackTrace();
         }
       }
     }
-
+    /**
+     * Sends all the clients except for the
+     * sender the edited group
+     * @param t
+     */
     public void editGroup(Transaction t) {
       for (SocketHandler s : activeClients) {
         if (!s.getClientName().equals(t.getClientName())) {
@@ -262,10 +262,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           try {
             oos.writeObject(crypto.encrypt(comp.compress(t.getByteArray()), s.secKey));
           }
-          catch (IOException ex) {
+          catch (Exception ex) {
             DispAlert.alertException(ex);
-          }catch (Exception e) {
-            e.printStackTrace();
           }
         }
       }
@@ -281,10 +279,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       try {
         oos.writeObject(crypto.encrypt(comp.compress(new Transaction("NEW_GROUP", groups).getByteArray()), s.secKey));
       }
-      catch (IOException ex) {
+      catch (Exception ex) {
         DispAlert.alertException(ex);
-      }catch (Exception e) {
-        e.printStackTrace();
       }
     }
     /**
@@ -364,12 +360,9 @@ public class Server extends Application implements EventHandler<ActionEvent> {
               comp.compress(new Transaction(sender,"DIRECT",message,recipient).getByteArray()), s.secKey));
             oos.flush();
           }
-          catch (IOException ex) {
+          catch (Exception ex) {
             DispAlert.alertException(ex);
-          }catch (Exception e) {
-            e.printStackTrace();
           }
-
         }
       }
       if (!found) {
@@ -399,10 +392,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
                 comp.compress(new Transaction(sender,"NOT_TYPING",recipient).getByteArray()), s.secKey));
             }
           }
-          catch (IOException ex) {
+          catch (Exception ex) {
             DispAlert.alertException(ex);
-          }catch (Exception e) {
-            e.printStackTrace();
           }
 
         }
@@ -489,6 +480,11 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       return true;
       
     }
+    /**
+     * This class handles each connection with a
+     * client. Each time a client connects, a new
+     * SocketHandler is created
+     */
     class SocketHandler extends Thread {
 
       private Socket s;
@@ -521,12 +517,12 @@ public class Server extends Application implements EventHandler<ActionEvent> {
       public void run() {
     
         writeText("Accepted a connection from "+s.getInetAddress()+":"+s.getPort());
-        currentThread().setName("SocketHandler"); // mostly for debugging
         try {
           if (validateName(clientName)) {
             addClient(this);
             sendActiveClients();
-            while (active) {
+            while (active) { // main loop that determines the action
+                             // based on the command given
               byte[] incomingBytes = (byte[])ois.readObject();
               byte[] decryptedBytes = (crypto.decrypt(incomingBytes, secKey));
               Transaction t = Transaction.reconstructTransaction(comp.decompress(decryptedBytes));
@@ -613,7 +609,10 @@ public class Server extends Application implements EventHandler<ActionEvent> {
           DispAlert.alertException(ex);
         }
       }
-      
+      /**
+       * Does a key exchange with the client and establishes
+       * the symmetric key to use
+       */
       public void doKeyExchange() {
           try {
              //send client a public key
@@ -633,12 +632,8 @@ public class Server extends Application implements EventHandler<ActionEvent> {
             Transaction t = Transaction.reconstructTransaction(clientBytes);
             clientName = t.getClientName(); 
              
-          }catch (IOException ioe) {
-            ioe.printStackTrace();
-          }catch (ClassNotFoundException cnfe) {
-             cnfe.printStackTrace();
-          }catch (Exception e) {
-             e.printStackTrace();
+          }catch (Exception ex) {
+             DispAlert.alertException(ex);;
           }
       }//end doKeyExchange()
       public void setInactive() {      // Part of a current bug

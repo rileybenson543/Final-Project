@@ -38,7 +38,7 @@ public class Crypto {
          secKey = AESgen.generateKey();
       
       }catch(NoSuchAlgorithmException nsae) {
-         nsae.printStackTrace();
+         DispAlert.alertException(nsae);
       }
    }
    

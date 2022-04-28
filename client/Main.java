@@ -93,7 +93,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 
   HashMap<String,Tab> tabs;
-  // ArrayList<Tab> tabs;
 
   Socket socket;
 

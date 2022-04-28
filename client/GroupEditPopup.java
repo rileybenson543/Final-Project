@@ -19,9 +19,9 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 /**
- * This class facilitates creating a popup for creating a new group.
- * It is given the ArrayList of the active clients for the gui
- * and returns a group object
+ * This class facilitates creating a popup for editing a group.
+ * It is given the ArrayList of the active clients and the 
+ * group that is to be edited
  */
 public class GroupEditPopup implements EventHandler<ActionEvent> {
 
@@ -82,7 +82,7 @@ public class GroupEditPopup implements EventHandler<ActionEvent> {
     }
     /**
      * Handles the button click for the
-     * "Create Group" button
+     * "Save Group" button
      */
     public void handle(ActionEvent evt) {
         getSelections();
