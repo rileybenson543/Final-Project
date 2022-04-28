@@ -383,6 +383,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
   */
   
   private String shorten(String _clientName) {
+      try {
         String clientName;
         if (_clientName.length() > 10  && !_clientName.contains(" ")) {
             clientName = _clientName.substring(0,10);
@@ -400,6 +401,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             clientName = _clientName;
         }
         return clientName;
+      }
+      catch (Exception ex) {
+        return _clientName;
+      }
   }
   
    /**
